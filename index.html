@@ -159,6 +159,10 @@
         .btn-submit:hover {
             background-color: #1d4ed8;
         }
+        .btn-submit:disabled {
+            background-color: #94a3b8;
+            cursor: not-allowed;
+        }
 
         /* 통계 필터 탭 스타일 */
         .filter-container {
@@ -276,6 +280,12 @@
         }
         .summary-table td:nth-child(2) {
             text-align: left;
+        }
+        .loading-text {
+            text-align: center;
+            padding: 30px;
+            color: #64748b;
+            font-weight: bold;
         }
     </style>
 </head>
@@ -397,7 +407,7 @@
                 <textarea name="t4" placeholder="자유롭게 작성해주세요."></textarea>
             </div>
 
-            <button type="submit" class="btn-submit">설문 제출 및 결과 확인</button>
+            <button type="submit" id="submit-btn" class="btn-submit">설문 제출 및 결과 확인</button>
         </form>
     </div>
 
@@ -445,10 +455,36 @@
     </div>
 </div>
 
-<script>
+<!-- Firebase SDK 13.x 모듈 버전 로드 -->
+<script type="module">
+
+  // Import the functions you need from the SDKs you need
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/13.0.0/firebase-app.js";
+  import { getAnalytics } from "https://www.gstatic.com/firebasejs/13.0.0/firebase-analytics.js";
+  // TODO: Add SDKs for Firebase products that you want to use
+  // https://firebase.google.com/docs/web/setup#available-libraries
+
+  // Your web app's Firebase configuration
+  // For Firebase JS SDK v7.20.0 and later, measurementId is optional
+  const firebaseConfig = {
+    apiKey: "AIzaSyDhUiKlIqza1b5f2vZw5jt3cFkiJ952voQ",
+    authDomain: "rpa-survey.firebaseapp.com",
+    projectId: "rpa-survey",
+    storageBucket: "rpa-survey.firebasestorage.app",
+    messagingSenderId: "169954559654",
+    appId: "1:169954559654:web:d37f9f51a2bc2247129667",
+    measurementId: "G-6NK36MZW13"
+  };
+
+  // Initialize Firebase
+  const app = initializeApp(firebaseConfig);
+  const analytics = getAnalytics(app);
+  const surveyCollection = collection(db, "rpa_survey_results");
+
     const CORRECT_PASSWORD = "22025344";
     let currentFilter = 'all'; // 'all', 'rental', 'outright'
     let chartInstances = {};   // 차트 인스턴스 저장 객체
+    let fetchedResultsCache = []; // 서버에서 불러온 데이터 저장용 메모리 캐시
 
     const scaleQuestions = [
         { id: 'q1', text: '1. RPA가 예정된 업무를 정상적으로 완료하는 편이다.' },
@@ -499,14 +535,19 @@
         });
     });
 
-    // 폼 제출 처리
-    document.getElementById('satisfaction-form').addEventListener('submit', function(e) {
+    // 폼 제출 처리 (Firebase Firestore 저장)
+    document.getElementById('satisfaction-form').addEventListener('submit', async function(e) {
         e.preventDefault();
         
+        const submitBtn = document.getElementById('submit-btn');
+        submitBtn.disabled = true;
+        submitBtn.innerText = "제출 중입니다...";
+
         const serviceType = document.querySelector('input[name="serviceType"]:checked').value;
         
         const formData = {
-            serviceType: serviceType
+            serviceType: serviceType,
+            createdAt: serverTimestamp()
         };
 
         scaleQuestions.forEach(q => {
@@ -518,29 +559,35 @@
             formData[q.id] = val;
         });
 
-        let allResults = JSON.parse(localStorage.getItem('rpa_survey_results') || '[]');
-        allResults.push(formData);
-        localStorage.setItem('rpa_survey_results', JSON.stringify(allResults));
+        try {
+            // Firebase에 데이터 등록
+            await addDoc(surveyCollection, formData);
 
-        document.getElementById('survey-view').style.display = 'none';
-        document.getElementById('result-view').style.display = 'block';
-        renderStats();
+            document.getElementById('survey-view').style.display = 'none';
+            document.getElementById('result-view').style.display = 'block';
+            await loadDataAndRender();
+        } catch (error) {
+            console.error("Firebase 저장 오류:", error);
+            alert("설문 저장 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.");
+            submitBtn.disabled = false;
+            submitBtn.innerText = "설문 제출 및 결과 확인";
+        }
     });
 
     // 통계 바로보기
-    function checkPasswordAndShowStats() {
+    window.checkPasswordAndShowStats = async function() {
         const input = prompt("관리자 비밀번호를 입력하세요:");
         if (input === CORRECT_PASSWORD) {
             document.getElementById('survey-view').style.display = 'none';
             document.getElementById('result-view').style.display = 'block';
-            renderStats();
+            await loadDataAndRender();
         } else if (input !== null) {
             alert("비밀번호가 일치하지 않습니다.");
         }
-    }
+    };
 
     // 통계 필터 변경 함수
-    function setFilter(filterType, btnElement) {
+    window.setFilter = function(filterType, btnElement) {
         currentFilter = filterType;
         document.querySelectorAll('.filter-btn').forEach(btn => btn.classList.remove('active'));
         if (btnElement) btnElement.classList.add('active');
@@ -551,10 +598,10 @@
         document.getElementById('filter-label-text').innerText = labelText;
 
         renderStats();
-    }
+    };
 
     // 설문 종료
-    function closeSurveyPage() {
+    window.closeSurveyPage = function() {
         alert("설문이 완료되었습니다. 창을 닫아주세요.");
         window.close();
         document.body.innerHTML = `
@@ -563,25 +610,51 @@
                 <p>본 브라우저 탭을 안전하게 닫으셔도 됩니다.</p>
             </div>
         `;
-    }
+    };
 
-    // 조사 결과 초기화
-    function checkPasswordAndReset() {
+    // 조사 결과 초기화 (Firebase 데이터 일괄 삭제)
+    window.checkPasswordAndReset = async function() {
         const input = prompt("결과 초기화를 위한 관리자 비밀번호를 입력하세요:");
         if (input === CORRECT_PASSWORD) {
-            if (confirm("정말로 모든 조사 결과를 초기화하시겠습니까? 이 작업은 되돌릴 수 없습니다.")) {
-                localStorage.removeItem('rpa_survey_results');
-                alert("초기화되었습니다.");
-                renderStats();
+            if (confirm("정말로 데이터베이스의 모든 조사 결과를 초기화하시겠습니까? 이 작업은 되돌릴 수 없습니다.")) {
+                try {
+                    const snapshot = await getDocs(surveyCollection);
+                    const deletePromises = snapshot.docs.map(d => deleteDoc(doc(db, "rpa_survey_results", d.id)));
+                    await Promise.all(deletePromises);
+
+                    alert("초기화되었습니다.");
+                    await loadDataAndRender();
+                } catch (err) {
+                    console.error("초기화 실패:", err);
+                    alert("초기화 처리 중 오류가 발생했습니다.");
+                }
             }
         } else if (input !== null) {
             alert("비밀번호가 일치하지 않습니다.");
         }
+    };
+
+    // Firebase 데이터 조회
+    async function loadDataAndRender() {
+        const container = document.getElementById('stats-container');
+        container.innerHTML = `<div class="loading-text">서버에서 응답 데이터를 불러오는 중입니다...</div>`;
+        
+        try {
+            const querySnapshot = await getDocs(surveyCollection);
+            fetchedResultsCache = [];
+            querySnapshot.forEach((doc) => {
+                fetchedResultsCache.push({ id: doc.id, ...doc.data() });
+            });
+            renderStats();
+        } catch (error) {
+            console.error("데이터 로딩 실패:", error);
+            container.innerHTML = `<div class="loading-text" style="color:#dc2626;">데이터를 불러오지 못했습니다. Firebase 설정 및 네트워크 상태를 확인하세요.</div>`;
+        }
     }
 
-    // 4. 엑셀(CSV) 완전 분리 및 익스포트 함수 (전체, 렌탈, 일시불 모두 포함)
-    function exportToCSV() {
-        const allResults = JSON.parse(localStorage.getItem('rpa_survey_results') || '[]');
+    // 엑셀(CSV) 다운로드
+    window.exportToCSV = function() {
+        const allResults = fetchedResultsCache;
         
         if (allResults.length === 0) {
             alert("다운로드할 응답 데이터가 없습니다.");
@@ -593,7 +666,6 @@
 
         let csvLines = [];
 
-        // 헬퍼 함수: 특정 데이터 집합에 대한 요약표 CSV 생성
         function generateSummaryRows(dataList, title) {
             csvLines.push(`"${title}"`);
             csvLines.push('"문항 번호","질문 내용","유효 응답자 수","점수 합계","평균 점수"');
@@ -611,20 +683,19 @@
                 const avgScore = scoreCount > 0 ? (totalScoreSum / scoreCount).toFixed(2) : '0.00';
                 csvLines.push(`"${q.id.toUpperCase()}","${q.text.replace(/"/g, '""')}","${scoreCount}명","${totalScoreSum}점","${avgScore}점"`);
             });
-            csvLines.push(""); // 단락 줄바꿈
+            csvLines.push("");
         }
 
-        // [파트 1] 요약표 출력 (전체 / 렌탈 / 일시불)
+        // [파트 1] 요약표 출력
         generateSummaryRows(allResults, "=== [1-1] 전체 통합 문항별 점수 요약표 ===");
         generateSummaryRows(rentalResults, "=== [1-2] [렌탈] 문항별 점수 요약표 ===");
         generateSummaryRows(outrightResults, "=== [1-3] [일시불] 문항별 점수 요약표 ===");
 
-        // [파트 2] 주관식 질문 및 답변 목록 (구분별)
+        // [파트 2] 주관식 답변 출력
         csvLines.push('"=== [2] 주관식 질문 및 구분별 답변 목록 ==="');
         textQuestions.forEach(q => {
             csvLines.push(`"[질문] ${q.text.replace(/"/g, '""')}"`);
             
-            // 렌탈 주관식 답변
             csvLines.push('"-- [렌탈 응답자 의견] --"');
             let hasRentalAns = false;
             rentalResults.forEach((res, idx) => {
@@ -635,7 +706,6 @@
             });
             if (!hasRentalAns) csvLines.push('"작성된 의견이 없습니다."');
 
-            // 일시불 주관식 답변
             csvLines.push('"-- [일시불 응답자 의견] --"');
             let hasOutrightAns = false;
             outrightResults.forEach((res, idx) => {
@@ -646,12 +716,12 @@
             });
             if (!hasOutrightAns) csvLines.push('"작성된 의견이 없습니다."');
 
-            csvLines.push(""); // 문항 간 간격
+            csvLines.push("");
         });
 
         csvLines.push("");
 
-        // [파트 3] 전체 상세 응답 데이터 (서비스구분 명시)
+        // [파트 3] 전체 상세 데이터
         csvLines.push('"=== [3] 전체 상세 응답 결과 데이터 ==="');
         let detailHeaders = ['번호', '서비스 구분'];
         scaleQuestions.forEach(q => detailHeaders.push(`"[${q.id}] ${q.text.replace(/"/g, '""')}"`));
@@ -672,23 +742,21 @@
         const url = URL.createObjectURL(blob);
         const link = document.createElement("a");
         link.setAttribute("href", url);
-        link.setAttribute("download", `RPA_만족도조사_통계결과(렌탈,일시불분리)_${new Date().toISOString().slice(0,10)}.csv`);
+        link.setAttribute("download", `RPA_만족도조사_통계결과(Firebase)_${new Date().toISOString().slice(0,10)}.csv`);
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
-    }
+    };
 
-    // 통계 결과 렌더링
+    // 통계 결과 화면 그려주기
     function renderStats() {
-        const rawResults = JSON.parse(localStorage.getItem('rpa_survey_results') || '[]');
+        const rawResults = fetchedResultsCache;
         
-        // 필터링 적용
         const allResults = rawResults.filter(res => {
             if (currentFilter === 'all') return true;
             return res.serviceType === currentFilter;
         });
 
-        // 기존 차트 객체 제거
         Object.keys(chartInstances).forEach(key => {
             if (chartInstances[key]) {
                 chartInstances[key].destroy();
@@ -774,7 +842,7 @@
 
         document.getElementById('summary-tbody').innerHTML = summaryTbodyHTML;
 
-        // 주관식 문항 출력
+        // 주관식 의견 출력
         textQuestions.forEach(q => {
             const card = document.createElement('div');
             card.className = 'stat-card';
