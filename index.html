@@ -156,8 +156,8 @@
             flex: 1;
         }
         .btn-reset:hover { background-color: #b91c1c; }
-        .btn-back {
-            background-color: #64748b;
+        .btn-close {
+            background-color: #475569;
             color: white;
             border: none;
             padding: 12px;
@@ -167,7 +167,7 @@
             cursor: pointer;
             width: 100%;
         }
-        .btn-back:hover { background-color: #475569; }
+        .btn-close:hover { background-color: #334155; }
 
         /* 결과 화면 스타일 */
         #result-view {
@@ -308,7 +308,7 @@
     <!-- 결과 통계 뷰 -->
     <div id="result-view">
         <h1>설문조사 결과 통계</h1>
-        <p class="desc">지금까지 누적된 전체 응답 결과입니다.</p>
+        <p class="desc">설문이 정상적으로 제출되었습니다. 지금까지 누적된 전체 응답 결과입니다.</p>
         
         <div class="result-actions">
             <button class="btn-export" onclick="exportToCSV()">엑셀(CSV) 다운로드</button>
@@ -316,7 +316,7 @@
         </div>
 
         <div id="stats-container"></div>
-        <button class="btn-back" onclick="showSurveyView()">설문 작성 페이지로 돌아가기</button>
+        <button class="btn-close" onclick="closeSurveyPage()">설문 종료</button>
     </div>
 </div>
 
@@ -407,9 +407,17 @@
         }
     }
 
-    function showSurveyView() {
-        document.getElementById('result-view').style.display = 'none';
-        document.getElementById('survey-view').style.display = 'block';
+    // 설문 종료 버튼 기능
+    function closeSurveyPage() {
+        alert("설문이 완료되었습니다. 창을 닫아주세요.");
+        window.close();
+        // 브라우저 보안 정책으로 창이 안 닫힐 경우 대체 안내 메시지 출력
+        document.body.innerHTML = `
+            <div style="max-width: 600px; margin: 100px auto; text-align: center; font-family: sans-serif;">
+                <h2>설문이 성공적으로 종료되었습니다.</h2>
+                <p>본 브라우저 탭을 안전하게 닫으셔도 됩니다.</p>
+            </div>
+        `;
     }
 
     // 2. 조사 결과 초기화 (비밀번호 인증)
@@ -434,14 +442,12 @@
             return;
         }
 
-        // CSV 헤더 생성
         let headers = ['번호'];
         scaleQuestions.forEach(q => headers.push(`문항_${q.id}`));
         textQuestions.forEach(q => headers.push(`의견_${q.id}`));
         
-        let csvContent = "\uFEFF" + headers.join(",") + "\n"; // 한글 깨짐 방지 BOM
+        let csvContent = "\uFEFF" + headers.join(",") + "\n";
 
-        // 데이터 행 생성
         allResults.forEach((res, index) => {
             let row = [index + 1];
             scaleQuestions.forEach(q => row.push(`"${(res[q.id] || '').replace(/"/g, '""')}"`));
@@ -449,7 +455,6 @@
             csvContent += row.join(",") + "\n";
         });
 
-        // 다운로드 실행
         const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
         const url = URL.createObjectURL(blob);
         const link = document.createElement("a");
@@ -466,7 +471,6 @@
         const container = document.getElementById('stats-container');
         container.innerHTML = `<p><strong>총 참여 인원:</strong> ${allResults.length}명</p>`;
 
-        // 1. 척도형 문항 통계
         scaleQuestions.forEach((q) => {
             const counts = { '1': 0, '2': 0, '3': 0, '4': 0, '5': 0, 'none': 0 };
             let totalScoreSum = 0;
@@ -519,7 +523,6 @@
             });
         });
 
-        // 2. 주관식 문항 응답 모음
         textQuestions.forEach(q => {
             const card = document.createElement('div');
             card.className = 'stat-card';
