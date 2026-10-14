@@ -166,6 +166,7 @@
             border-radius: 8px;
             cursor: pointer;
             width: 100%;
+            margin-top: 20px;
         }
         .btn-close:hover { background-color: #334155; }
 
@@ -193,6 +194,26 @@
             height: 250px;
             width: 100%;
             margin-top: 15px;
+        }
+        /* 요약 테이블 스타일 */
+        .summary-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+            background: #ffffff;
+            font-size: 14px;
+        }
+        .summary-table th, .summary-table td {
+            border: 1px solid #cbd5e1;
+            padding: 10px;
+            text-align: center;
+        }
+        .summary-table th {
+            background-color: #f1f5f9;
+            font-weight: 600;
+        }
+        .summary-table td:nth-child(2) {
+            text-align: left;
         }
     </style>
 </head>
@@ -316,6 +337,28 @@
         </div>
 
         <div id="stats-container"></div>
+        
+        <!-- 질문별 점수 합계 요약 영역 -->
+        <div class="stat-card">
+            <div class="question-title">문항별 점수 합계 및 평균 요약표</div>
+            <div style="overflow-x: auto;">
+                <table class="summary-table" id="summary-table">
+                    <thead>
+                        <tr>
+                            <th>문항 번호</th>
+                            <th>질문 내용</th>
+                            <th>유효 응답자 수</th>
+                            <th>점수 합계</th>
+                            <th>평균 점수</th>
+                        </tr>
+                    </thead>
+                    <tbody id="summary-tbody">
+                        <!-- 동적 생성 -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
         <button class="btn-close" onclick="closeSurveyPage()">설문 종료</button>
     </div>
 </div>
@@ -411,7 +454,6 @@
     function closeSurveyPage() {
         alert("설문이 완료되었습니다. 창을 닫아주세요.");
         window.close();
-        // 브라우저 보안 정책으로 창이 안 닫힐 경우 대체 안내 메시지 출력
         document.body.innerHTML = `
             <div style="max-width: 600px; margin: 100px auto; text-align: center; font-family: sans-serif;">
                 <h2>설문이 성공적으로 종료되었습니다.</h2>
@@ -434,7 +476,7 @@
         }
     }
 
-    // 3. 엑셀(CSV) 익스포트 기능
+    // 3. 엑셀(CSV) 익스포트 기능 (질문 내용 포함)
     function exportToCSV() {
         const allResults = JSON.parse(localStorage.getItem('rpa_survey_results') || '[]');
         if (allResults.length === 0) {
@@ -443,8 +485,8 @@
         }
 
         let headers = ['번호'];
-        scaleQuestions.forEach(q => headers.push(`문항_${q.id}`));
-        textQuestions.forEach(q => headers.push(`의견_${q.id}`));
+        scaleQuestions.forEach(q => headers.push(`"[${q.id}] ${q.text.replace(/"/g, '""')}"`));
+        textQuestions.forEach(q => headers.push(`"[${q.id}] ${q.text.replace(/"/g, '""')}"`));
         
         let csvContent = "\uFEFF" + headers.join(",") + "\n";
 
@@ -471,6 +513,13 @@
         const container = document.getElementById('stats-container');
         container.innerHTML = `<p><strong>총 참여 인원:</strong> ${allResults.length}명</p>`;
 
+        // 기존 차트 카드 영역 초기화 (stats-container 하위 기존 카드들 제거)
+        // stats-container 바로 아래에 차트 카드들을 넣고, 하단 요약표는 별도 ID(`#summary-tbody`)로 관리
+        const existingCards = container.querySelectorAll('.stat-card');
+        existingCards.forEach(c => c.remove());
+
+        let summaryTbodyHTML = '';
+
         scaleQuestions.forEach((q) => {
             const counts = { '1': 0, '2': 0, '3': 0, '4': 0, '5': 0, 'none': 0 };
             let totalScoreSum = 0;
@@ -489,11 +538,22 @@
 
             const avgScore = scoreCount > 0 ? (totalScoreSum / scoreCount).toFixed(2) : '0.00';
 
+            // 요약 테이블 행 추가
+            summaryTbodyHTML += `
+                <tr>
+                    <td>${q.id.toUpperCase()}</td>
+                    <td>${q.text}</td>
+                    <td>${scoreCount}명</td>
+                    <td><strong>${totalScoreSum}점</strong></td>
+                    <td><strong>${avgScore}점</strong></td>
+                </tr>
+            `;
+
             const card = document.createElement('div');
             card.className = 'stat-card';
             card.innerHTML = `
                 <div class="question-title">${q.text}</div>
-                <p>평균 점수: <strong>${avgScore}점</strong> (유효 응답 ${scoreCount}명, 해당 없음 ${counts['none']}명)</p>
+                <p>점수 합계: <strong>${totalScoreSum}점</strong> | 평균 점수: <strong>${avgScore}점</strong> (유효 응답 ${scoreCount}명, 해당 없음 ${counts['none']}명)</p>
                 <div class="chart-container">
                     <canvas id="chart-${q.id}"></canvas>
                 </div>
@@ -522,6 +582,8 @@
                 }
             });
         });
+
+        document.getElementById('summary-tbody').innerHTML = summaryTbodyHTML;
 
         textQuestions.forEach(q => {
             const card = document.createElement('div');
