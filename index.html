@@ -579,77 +579,88 @@
         }
     }
 
-    // 엑셀(CSV) 다운로드 (필터링 조건 반영)
+    // 4. 엑셀(CSV) 완전 분리 및 익스포트 함수 (전체, 렌탈, 일시불 모두 포함)
     function exportToCSV() {
-        const rawResults = JSON.parse(localStorage.getItem('rpa_survey_results') || '[]');
+        const allResults = JSON.parse(localStorage.getItem('rpa_survey_results') || '[]');
         
-        // 필터링 적용
-        const allResults = rawResults.filter(res => {
-            if (currentFilter === 'all') return true;
-            return res.serviceType === currentFilter;
-        });
-
         if (allResults.length === 0) {
-            alert("선택한 필터 조건에 해당하는 다운로드 데이터가 없습니다.");
+            alert("다운로드할 응답 데이터가 없습니다.");
             return;
         }
 
-        let filterNameText = "전체";
-        if (currentFilter === 'rental') filterNameText = "렌탈";
-        if (currentFilter === 'outright') filterNameText = "일시불";
+        const rentalResults = allResults.filter(r => r.serviceType === 'rental');
+        const outrightResults = allResults.filter(r => r.serviceType === 'outright');
 
         let csvLines = [];
 
-        // [파트 1] 문항별 점수 합계 및 평균 요약표
-        csvLines.push(`"=== [1] 문항별 점수 합계 및 평균 요약표 (${filterNameText}) ==="`);
-        csvLines.push('"문항 번호","질문 내용","유효 응답자 수","점수 합계","평균 점수"');
-
-        scaleQuestions.forEach(q => {
-            let totalScoreSum = 0;
-            let scoreCount = 0;
-            allResults.forEach(res => {
-                const val = res[q.id];
-                if (val && val !== 'none') {
-                    totalScoreSum += parseInt(val);
-                    scoreCount++;
-                }
+        // 헬퍼 함수: 특정 데이터 집합에 대한 요약표 CSV 생성
+        function generateSummaryRows(dataList, title) {
+            csvLines.push(`"${title}"`);
+            csvLines.push('"문항 번호","질문 내용","유효 응답자 수","점수 합계","평균 점수"');
+            
+            scaleQuestions.forEach(q => {
+                let totalScoreSum = 0;
+                let scoreCount = 0;
+                dataList.forEach(res => {
+                    const val = res[q.id];
+                    if (val && val !== 'none') {
+                        totalScoreSum += parseInt(val);
+                        scoreCount++;
+                    }
+                });
+                const avgScore = scoreCount > 0 ? (totalScoreSum / scoreCount).toFixed(2) : '0.00';
+                csvLines.push(`"${q.id.toUpperCase()}","${q.text.replace(/"/g, '""')}","${scoreCount}명","${totalScoreSum}점","${avgScore}점"`);
             });
-            const avgScore = scoreCount > 0 ? (totalScoreSum / scoreCount).toFixed(2) : '0.00';
-            csvLines.push(`"${q.id.toUpperCase()}","${q.text.replace(/"/g, '""')}","${scoreCount}명","${totalScoreSum}점","${avgScore}점"`);
-        });
+            csvLines.push(""); // 단락 줄바꿈
+        }
 
-        csvLines.push("");
+        // [파트 1] 요약표 출력 (전체 / 렌탈 / 일시불)
+        generateSummaryRows(allResults, "=== [1-1] 전체 통합 문항별 점수 요약표 ===");
+        generateSummaryRows(rentalResults, "=== [1-2] [렌탈] 문항별 점수 요약표 ===");
+        generateSummaryRows(outrightResults, "=== [1-3] [일시불] 문항별 점수 요약표 ===");
 
-        // [파트 2] 주관식 질문 및 답변 목록
-        csvLines.push(`"=== [2] 주관식 질문 및 답변 목록 (${filterNameText}) ==="`);
+        // [파트 2] 주관식 질문 및 답변 목록 (구분별)
+        csvLines.push('"=== [2] 주관식 질문 및 구분별 답변 목록 ==="');
         textQuestions.forEach(q => {
             csvLines.push(`"[질문] ${q.text.replace(/"/g, '""')}"`);
-            let hasAnswers = false;
-            allResults.forEach((res, idx) => {
+            
+            // 렌탈 주관식 답변
+            csvLines.push('"-- [렌탈 응답자 의견] --"');
+            let hasRentalAns = false;
+            rentalResults.forEach((res, idx) => {
                 if (res[q.id]) {
-                    hasAnswers = true;
-                    const typeLabel = res.serviceType === 'rental' ? '렌탈' : '일시불';
-                    csvLines.push(`"응답 ${idx + 1} (${typeLabel})","${res[q.id].replace(/"/g, '""')}"`);
+                    hasRentalAns = true;
+                    csvLines.push(`"렌탈 응답 ${idx + 1}","${res[q.id].replace(/"/g, '""')}"`);
                 }
             });
-            if (!hasAnswers) {
-                csvLines.push('"작성된 답변이 없습니다."');
-            }
-            csvLines.push("");
+            if (!hasRentalAns) csvLines.push('"작성된 의견이 없습니다."');
+
+            // 일시불 주관식 답변
+            csvLines.push('"-- [일시불 응답자 의견] --"');
+            let hasOutrightAns = false;
+            outrightResults.forEach((res, idx) => {
+                if (res[q.id]) {
+                    hasOutrightAns = true;
+                    csvLines.push(`"일시불 응답 ${idx + 1}","${res[q.id].replace(/"/g, '""')}"`);
+                }
+            });
+            if (!hasOutrightAns) csvLines.push('"작성된 의견이 없습니다."');
+
+            csvLines.push(""); // 문항 간 간격
         });
 
         csvLines.push("");
 
-        // [파트 3] 전체 상세 응답 데이터
-        csvLines.push(`"=== [3] 상세 응답 데이터 목록 (${filterNameText}) ==="`);
-        let detailHeaders = ['번호', '서비스구분'];
+        // [파트 3] 전체 상세 응답 데이터 (서비스구분 명시)
+        csvLines.push('"=== [3] 전체 상세 응답 결과 데이터 ==="');
+        let detailHeaders = ['번호', '서비스 구분'];
         scaleQuestions.forEach(q => detailHeaders.push(`"[${q.id}] ${q.text.replace(/"/g, '""')}"`));
         textQuestions.forEach(q => detailHeaders.push(`"[${q.id}] ${q.text.replace(/"/g, '""')}"`));
         csvLines.push(detailHeaders.join(","));
 
         allResults.forEach((res, index) => {
-            const typeLabel = res.serviceType === 'rental' ? '렌탈' : '일시불';
-            let row = [index + 1, `"${typeLabel}"`];
+            const serviceLabel = res.serviceType === 'rental' ? '렌탈' : '일시불';
+            let row = [index + 1, `"${serviceLabel}"`];
             scaleQuestions.forEach(q => row.push(`"${(res[q.id] || '').replace(/"/g, '""')}"`));
             textQuestions.forEach(q => row.push(`"${(res[q.id] || '').replace(/"/g, '""')}"`));
             csvLines.push(row.join(","));
@@ -661,7 +672,7 @@
         const url = URL.createObjectURL(blob);
         const link = document.createElement("a");
         link.setAttribute("href", url);
-        link.setAttribute("download", `RPA_만족도조사_${filterNameText}_${new Date().toISOString().slice(0,10)}.csv`);
+        link.setAttribute("download", `RPA_만족도조사_통계결과(렌탈,일시불분리)_${new Date().toISOString().slice(0,10)}.csv`);
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
