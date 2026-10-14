@@ -336,9 +336,7 @@
             <button class="btn-reset" onclick="checkPasswordAndReset()">조사 결과 초기화</button>
         </div>
 
-        <div id="stats-container"></div>
-        
-        <!-- 질문별 점수 합계 요약 영역 -->
+        <!-- 질문별 점수 합계 요약 영역 (엑셀 다운로드 및 조사 결과 초기화 하단 위치) -->
         <div class="stat-card">
             <div class="question-title">문항별 점수 합계 및 평균 요약표</div>
             <div style="overflow-x: auto;">
@@ -358,6 +356,8 @@
                 </table>
             </div>
         </div>
+
+        <div id="stats-container"></div>
 
         <button class="btn-close" onclick="closeSurveyPage()">설문 종료</button>
     </div>
@@ -514,7 +514,6 @@
         container.innerHTML = `<p><strong>총 참여 인원:</strong> ${allResults.length}명</p>`;
 
         // 기존 차트 카드 영역 초기화 (stats-container 하위 기존 카드들 제거)
-        // stats-container 바로 아래에 차트 카드들을 넣고, 하단 요약표는 별도 ID(`#summary-tbody`)로 관리
         const existingCards = container.querySelectorAll('.stat-card');
         existingCards.forEach(c => c.remove());
 
@@ -538,7 +537,7 @@
 
             const avgScore = scoreCount > 0 ? (totalScoreSum / scoreCount).toFixed(2) : '0.00';
 
-            // 요약 테이블 행 추가
+            // 요약 테이블 행 추가 (질문 내용 및 점수 합계 포함)
             summaryTbodyHTML += `
                 <tr>
                     <td>${q.id.toUpperCase()}</td>
