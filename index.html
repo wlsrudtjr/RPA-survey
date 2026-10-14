@@ -336,7 +336,7 @@
             <button class="btn-reset" onclick="checkPasswordAndReset()">조사 결과 초기화</button>
         </div>
 
-        <!-- 질문별 점수 합계 요약 영역 (엑셀 다운로드 및 조사 결과 초기화 하단 위치) -->
+        <!-- 질문별 점수 합계 요약 영역 -->
         <div class="stat-card">
             <div class="question-title">문항별 점수 합계 및 평균 요약표</div>
             <div style="overflow-x: auto;">
@@ -476,7 +476,7 @@
         }
     }
 
-    // 3. 엑셀(CSV) 익스포트 기능 (질문 내용 포함)
+    // 3. 엑셀(CSV) 익스포트 기능 (요약표 및 주관식 문항/답변 포함)
     function exportToCSV() {
         const allResults = JSON.parse(localStorage.getItem('rpa_survey_results') || '[]');
         if (allResults.length === 0) {
@@ -484,24 +484,68 @@
             return;
         }
 
-        let headers = ['번호'];
-        scaleQuestions.forEach(q => headers.push(`"[${q.id}] ${q.text.replace(/"/g, '""')}"`));
-        textQuestions.forEach(q => headers.push(`"[${q.id}] ${q.text.replace(/"/g, '""')}"`));
-        
-        let csvContent = "\uFEFF" + headers.join(",") + "\n";
+        let csvLines = [];
+
+        // [파트 1] 문항별 점수 합계 및 평균 요약표 섹션
+        csvLines.push('"=== [1] 문항별 점수 합계 및 평균 요약표 ==="');
+        csvLines.push('"문항 번호","질문 내용","유효 응답자 수","점수 합계","평균 점수"');
+
+        scaleQuestions.forEach(q => {
+            let totalScoreSum = 0;
+            let scoreCount = 0;
+            allResults.forEach(res => {
+                const val = res[q.id];
+                if (val && val !== 'none') {
+                    totalScoreSum += parseInt(val);
+                    scoreCount++;
+                }
+            });
+            const avgScore = scoreCount > 0 ? (totalScoreSum / scoreCount).toFixed(2) : '0.00';
+            csvLines.push(`"${q.id.toUpperCase()}","${q.text.replace(/"/g, '""')}","${scoreCount}명","${totalScoreSum}점","${avgScore}점"`);
+        });
+
+        csvLines.push(""); // 빈 줄 공백
+
+        // [파트 2] 주관식 질문 및 답변 목록 섹션
+        csvLines.push('"=== [2] 주관식 질문 및 답변 목록 ==="');
+        textQuestions.forEach(q => {
+            csvLines.push(`"[질문] ${q.text.replace(/"/g, '""')}"`);
+            let hasAnswers = false;
+            allResults.forEach((res, idx) => {
+                if (res[q.id]) {
+                    hasAnswers = true;
+                    csvLines.push(`"응답 ${idx + 1}","${res[q.id].replace(/"/g, '""')}"`);
+                }
+            });
+            if (!hasAnswers) {
+                csvLines.push('"작성된 답변이 없습니다."');
+            }
+            csvLines.push(""); // 문항 간 간격
+        });
+
+        csvLines.push(""); // 빈 줄 공백
+
+        // [파트 3] 전체 상세 응답 데이터 섹션
+        csvLines.push('"=== [3] 전체 상세 응답 결과 데이터 ==="');
+        let detailHeaders = ['번호'];
+        scaleQuestions.forEach(q => detailHeaders.push(`"[${q.id}] ${q.text.replace(/"/g, '""')}"`));
+        textQuestions.forEach(q => detailHeaders.push(`"[${q.id}] ${q.text.replace(/"/g, '""')}"`));
+        csvLines.push(detailHeaders.join(","));
 
         allResults.forEach((res, index) => {
             let row = [index + 1];
             scaleQuestions.forEach(q => row.push(`"${(res[q.id] || '').replace(/"/g, '""')}"`));
             textQuestions.forEach(q => row.push(`"${(res[q.id] || '').replace(/"/g, '""')}"`));
-            csvContent += row.join(",") + "\n";
+            csvLines.push(row.join(","));
         });
+
+        let csvContent = "\uFEFF" + csvLines.join("\n");
 
         const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
         const url = URL.createObjectURL(blob);
         const link = document.createElement("a");
         link.setAttribute("href", url);
-        link.setAttribute("download", `RPA_만족도조사_결과_${new Date().toISOString().slice(0,10)}.csv`);
+        link.setAttribute("download", `RPA_만족도조사_통계결과_${new Date().toISOString().slice(0,10)}.csv`);
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
@@ -513,7 +557,6 @@
         const container = document.getElementById('stats-container');
         container.innerHTML = `<p><strong>총 참여 인원:</strong> ${allResults.length}명</p>`;
 
-        // 기존 차트 카드 영역 초기화 (stats-container 하위 기존 카드들 제거)
         const existingCards = container.querySelectorAll('.stat-card');
         existingCards.forEach(c => c.remove());
 
@@ -537,7 +580,6 @@
 
             const avgScore = scoreCount > 0 ? (totalScoreSum / scoreCount).toFixed(2) : '0.00';
 
-            // 요약 테이블 행 추가 (질문 내용 및 점수 합계 포함)
             summaryTbodyHTML += `
                 <tr>
                     <td>${q.id.toUpperCase()}</td>
