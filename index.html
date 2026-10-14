@@ -1,0 +1,419 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RPA 만족도 조사</title>
+    <!-- Chart.js CDN (통계 시각화용) -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        :root {
+            --primary-color: #2563eb;
+            --bg-color: #f8fafc;
+            --card-bg: #ffffff;
+            --text-color: #1e293b;
+            --border-color: #cbd5e1;
+        }
+        body {
+            font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            line-height: 1.6;
+            margin: 0;
+            padding: 20px;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: var(--card-bg);
+            padding: 40px;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        }
+        h1 {
+            color: var(--primary-color);
+            text-align: center;
+            margin-bottom: 10px;
+        }
+        .desc {
+            text-align: center;
+            color: #64748b;
+            margin-bottom: 30px;
+        }
+        .scale-guide {
+            background: #eff6ff;
+            border: 1px solid #bfdbfe;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 30px;
+            font-size: 14px;
+        }
+        .section-title {
+            font-size: 1.25rem;
+            font-weight: bold;
+            margin-top: 30px;
+            margin-bottom: 15px;
+            border-bottom: 2px solid var(--primary-color);
+            padding-bottom: 5px;
+            color: #1e293b;
+        }
+        .question-card {
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+        .question-title {
+            font-weight: 600;
+            margin-bottom: 12px;
+        }
+        .options {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+        .options label {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        textarea {
+            width: 100%;
+            height: 80px;
+            padding: 10px;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            resize: vertical;
+            font-family: inherit;
+        }
+        .btn-submit {
+            display: block;
+            width: 100%;
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            padding: 15px;
+            font-size: 16px;
+            font-weight: bold;
+            border-radius: 8px;
+            cursor: pointer;
+            margin-top: 30px;
+            transition: background-color 0.2s;
+        }
+        .btn-submit:hover {
+            background-color: #1d4ed8;
+        }
+        /* 결과 화면 스타일 */
+        #result-view {
+            display: none;
+        }
+        .stat-card {
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+        .text-responses {
+            background: #ffffff;
+            border: 1px solid #e2e8f0;
+            padding: 10px 15px;
+            border-radius: 6px;
+            margin-top: 8px;
+            font-size: 14px;
+        }
+        .chart-container {
+            position: relative;
+            height: 250px;
+            width: 100%;
+            margin-top: 15px;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <!-- 설문 작성 뷰 -->
+    <div id="survey-view">
+        <h1>RPA 사용 만족도 조사</h1>
+        <p class="desc">본 설문조사는 RPA 운영 안정성 및 업무 효과성을 점검하고 개선하기 위한 자료로 활용됩니다.</p>
+        
+        <div class="scale-guide">
+            <strong>[응답 기준]</strong> 5점 척도<br>
+            1점: 전혀 그렇지 않다 | 2점: 그렇지 않다 | 3점: 보통이다 | 4점: 그렇다 | 5점: 매우 그렇다<br>
+            <em>※ 경험이 없는 문항에는 ‘해당 없음’을 선택하세요.</em>
+        </div>
+
+        <form id="satisfaction-form">
+            <!-- 섹션 1: 안정성 및 정상 동작 -->
+            <div class="section-title">1. 안정성 및 정상 동작</div>
+            <div class="question-card" data-qtype="scale" data-qid="q1">
+                <div class="question-title">1. RPA가 예정된 업무를 정상적으로 완료하는 편이다.</div>
+                <div class="options"></div>
+            </div>
+            <div class="question-card" data-qtype="scale" data-qid="q2">
+                <div class="question-title">2. 업무 처리 중 오류나 중단이 발생하는 빈도가 낮다.</div>
+                <div class="options"></div>
+            </div>
+            <div class="question-card" data-qtype="scale" data-qid="q3">
+                <div class="question-title">3. RPA가 처리한 결과는 정확하고, 별도의 재확인이 거의 필요하지 않다.</div>
+                <div class="options"></div>
+            </div>
+            <div class="question-card" data-qtype="scale" data-qid="q4">
+                <div class="question-title">4. 마감업무에서 정해진 시간 안에 처리가 완료된다.</div>
+                <div class="options"></div>
+            </div>
+            <div class="question-card" data-qtype="scale" data-qid="q5">
+                <div class="question-title">5. 입력값이나 업무 조건이 달라져도 기대한 방식으로 처리된다.</div>
+                <div class="options"></div>
+            </div>
+
+            <!-- 섹션 2: 오류 및 문제 대응 -->
+            <div class="section-title">2. 오류 및 문제 대응</div>
+            <div class="question-card" data-qtype="scale" data-qid="q6">
+                <div class="question-title">6. 오류가 발생했을 때 원인이나 처리 상태를 쉽게 확인할 수 있다.</div>
+                <div class="options"></div>
+            </div>
+            <div class="question-card" data-qtype="scale" data-qid="q7">
+                <div class="question-title">7. 오류 발생 시 담당자 또는 업체의 대응이 신속하다.</div>
+                <div class="options"></div>
+            </div>
+            <div class="question-card" data-qtype="scale" data-qid="q8">
+                <div class="question-title">8. 오류가 발생한 업무를 재처리하거나 수동으로 마무리하기 쉽다.</div>
+                <div class="options"></div>
+            </div>
+            <div class="question-card" data-qtype="scale" data-qid="q9">
+                <div class="question-title">9. 동일하거나 유사한 오류가 반복되지 않도록 개선되고 있다.</div>
+                <div class="options"></div>
+            </div>
+
+            <!-- 섹션 3: 업무 효과 및 사용 만족도 -->
+            <div class="section-title">3. 업무 효과 및 사용 만족도</div>
+            <div class="question-card" data-qtype="scale" data-qid="q10">
+                <div class="question-title">10. RPA 사용으로 반복적인 수작업 시간이 줄었다.</div>
+                <div class="options"></div>
+            </div>
+            <div class="question-card" data-qtype="scale" data-qid="q11">
+                <div class="question-title">11. RPA 사용으로 마감업무의 업무 부담이 줄었다.</div>
+                <div class="options"></div>
+            </div>
+            <div class="question-card" data-qtype="scale" data-qid="q12">
+                <div class="question-title">12. RPA 사용 후 전체 업무 처리 시간이 줄었다.</div>
+                <div class="options"></div>
+            </div>
+            <div class="question-card" data-qtype="scale" data-qid="q13">
+                <div class="question-title">13. RPA를 사용하면 업무 결과를 더 안정적으로 관리할 수 있다.</div>
+                <div class="options"></div>
+            </div>
+            <div class="question-card" data-qtype="scale" data-qid="q14">
+                <div class="question-title">14. 현재 RPA의 전반적인 사용 경험에 만족한다.</div>
+                <div class="options"></div>
+            </div>
+            <div class="question-card" data-qtype="scale" data-qid="q15">
+                <div class="question-title">15. 현재 상태가 개선된다면 앞으로도 해당 업무에 RPA를 계속 사용하고 싶다.</div>
+                <div class="options"></div>
+            </div>
+
+            <!-- 섹션 4: 개선 의견 -->
+            <div class="section-title">4. 개선 의견</div>
+            <div class="question-card" data-qtype="text" data-qid="t1">
+                <div class="question-title">가장 자주 발생하는 오류 또는 불편 사항은 무엇인가요?</div>
+                <textarea name="t1" placeholder="자유롭게 작성해주세요."></textarea>
+            </div>
+            <div class="question-card" data-qtype="text" data-qid="t2">
+                <div class="question-title">오류가 발생했을 때 업무에 어떤 영향이 있었나요? (예: 재작업, 마감 지연, 수작업 전환)</div>
+                <textarea name="t2" placeholder="자유롭게 작성해주세요."></textarea>
+            </div>
+            <div class="question-card" data-qtype="text" data-qid="t3">
+                <div class="question-title">가장 먼저 개선되었으면 하는 사항은 무엇인가요?</div>
+                <textarea name="t3" placeholder="자유롭게 작성해주세요."></textarea>
+            </div>
+            <div class="question-card" data-qtype="text" data-qid="t4">
+                <div class="question-title">RPA 안정성 및 오류 대응을 위해 추가로 요청하거나 개선되었으면 하는 사항이 있습니까?</div>
+                <textarea name="t4" placeholder="자유롭게 작성해주세요."></textarea>
+            </div>
+
+            <button type="submit" class="btn-submit">설문 제출 및 결과 확인</button>
+        </form>
+    </div>
+
+    <!-- 결과 통계 뷰 -->
+    <div id="result-view">
+        <h1>설문조사 결과 통계</h1>
+        <p class="desc">지금까지 누적된 전체 응답 결과입니다.</p>
+        <div id="stats-container"></div>
+        <button class="btn-submit" onclick="location.reload();">설문 작성 페이지로 돌아가기</button>
+    </div>
+</div>
+
+<script>
+    // 질문 데이터 정의
+    const scaleQuestions = [
+        { id: 'q1', text: '1. RPA가 예정된 업무를 정상적으로 완료하는 편이다.' },
+        { id: 'q2', text: '2. 업무 처리 중 오류나 중단이 발생하는 빈도가 낮다.' },
+        { id: 'q3', text: '3. RPA가 처리한 결과는 정확하고, 별도의 재확인이 거의 필요하지 않다.' },
+        { id: 'q4', text: '4. 마감업무에서 정해진 시간 안에 처리가 완료된다.' },
+        { id: 'q5', text: '5. 입력값이나 업무 조건이 달라져도 기대한 방식으로 처리된다.' },
+        { id: 'q6', text: '6. 오류가 발생했을 때 원인이나 처리 상태를 쉽게 확인할 수 있다.' },
+        { id: 'q7', text: '7. 오류 발생 시 담당자 또는 업체의 대응이 신속하다.' },
+        { id: 'q8', text: '8. 오류가 발생한 업무를 재처리하거나 수동으로 마무리하기 쉽다.' },
+        { id: 'q9', text: '9. 동일하거나 유사한 오류가 반복되지 않도록 개선되고 있다.' },
+        { id: 'q10', text: '10. RPA 사용으로 반복적인 수작업 시간이 줄었다.' },
+        { id: 'q11', text: '11. RPA 사용으로 마감업무의 업무 부담이 줄었다.' },
+        { id: 'q12', text: '12. RPA 사용 후 전체 업무 처리 시간이 줄었다.' },
+        { id: 'q13', text: '13. RPA를 사용하면 업무 결과를 더 안정적으로 관리할 수 있다.' },
+        { id: 'q14', text: '14. 현재 RPA의 전반적인 사용 경험에 만족한다.' },
+        { id: 'q15', text: '15. 현재 상태가 개선된다면 앞으로도 해당 업무에 RPA를 계속 사용하고 싶다.' }
+    ];
+
+    const textQuestions = [
+        { id: 't1', text: '가장 자주 발생하는 오류 또는 불편 사항은 무엇인가요?' },
+        { id: 't2', text: '오류가 발생했을 때 업무에 어떤 영향이 있었나요? (예: 재작업, 마감 지연, 수작업 전환)' },
+        { id: 't3', text: '가장 먼저 개선되었으면 하는 사항은 무엇인가요?' },
+        { id: 't4', text: 'RPA 안정성 및 오류 대응을 위해 추가로 요청하거나 개선되었으면 하는 사항이 있습니까?' }
+    ];
+
+    // 5점 척도 라디오 버튼 동적 생성
+    document.querySelectorAll('.question-card[data-qtype="scale"]').forEach(card => {
+        const qid = card.getAttribute('data-qid');
+        const optionsDiv = card.querySelector('.options');
+        const scaleLabels = [
+            "1점 (전혀 그렇지 않다)",
+            "2점 (그렇지 않다)",
+            "3점 (보통이다)",
+            "4점 (그렇다)",
+            "5점 (매우 그렇다)",
+            "해당 없음"
+        ];
+        
+        scaleLabels.forEach((label, idx) => {
+            const val = idx < 5 ? (idx + 1).toString() : 'none';
+            optionsDiv.innerHTML += `
+                <label>
+                    <input type="radio" name="${qid}" value="${val}" required>
+                    ${label}
+                </label>
+            `;
+        });
+    });
+
+    // 폼 제출 처리
+    document.getElementById('satisfaction-form').addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        const formData = {};
+        scaleQuestions.forEach(q => {
+            const checked = document.querySelector(`input[name="${q.id}"]:checked`);
+            formData[q.id] = checked ? checked.value : 'none';
+        });
+        textQuestions.forEach(q => {
+            const val = document.querySelector(`textarea[name="${q.id}"]`).value.trim();
+            formData[q.id] = val;
+        });
+
+        // localStorage에 누적 저장
+        let allResults = JSON.parse(localStorage.getItem('rpa_survey_results') || '[]');
+        allResults.push(formData);
+        localStorage.setItem('rpa_survey_results', JSON.stringify(allResults));
+
+        // 뷰 전환 및 통계 렌더링
+        document.getElementById('survey-view').style.display = 'none';
+        document.getElementById('result-view').style.display = 'block';
+        renderStats();
+    });
+
+    // 통계 결과 렌더링 함수
+    function renderStats() {
+        const allResults = JSON.parse(localStorage.getItem('rpa_survey_results') || '[]');
+        const container = document.getElementById('stats-container');
+        container.innerHTML = `<p><strong>총 참여 인원:</strong> ${allResults.length}명</p>`;
+
+        // 1. 척도형 문항 통계
+        scaleQuestions.forEach((q, index) => {
+            // 각 점수별 카운트 (1~5, none)
+            const counts = { '1': 0, '2': 0, '3': 0, '4': 0, '5': 0, 'none': 0 };
+            let totalScoreSum = 0;
+            let scoreCount = 0;
+
+            allResults.forEach(res => {
+                const val = res[q.id];
+                if (counts[val] !== undefined) {
+                    counts[val]++;
+                    if (val !== 'none') {
+                        totalScoreSum += parseInt(val);
+                        scoreCount++;
+                    }
+                }
+            });
+
+            const avgScore = scoreCount > 0 ? (totalScoreSum / scoreCount).toFixed(2) : '0.00';
+
+            const card = document.createElement('div');
+            card.className = 'stat-card';
+            card.innerHTML = `
+                <div class="question-title">${q.text}</div>
+                <p>평균 점수: <strong>${avgScore}점</strong> (유효 응답 ${scoreCount}명, 해당 없음 ${counts['none']}명)</p>
+                <div class="chart-container">
+                    <canvas id="chart-${q.id}"></canvas>
+                </div>
+            `;
+            container.appendChild(card);
+
+            // Chart.js 막대그래프 그리기
+            const ctx = document.getElementById(`chart-${q.id}`).getContext('2d');
+            new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: ['1점', '2점', '3점', '4점', '5점', '해당 없음'],
+                    datasets: [{
+                        label: '응답 수',
+                        data: [counts['1'], counts['2'], counts['3'], counts['4'], counts['5'], counts['none']],
+                        backgroundColor: '#3b82f6',
+                        borderRadius: 4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: { beginAtZero: true, ticks: { stepSize: 1 } }
+                    },
+                    plugins: { legend: { display: false } }
+                }
+            });
+        });
+
+        // 2. 주관식 문항 응답 모음
+        textQuestions.forEach(q => {
+            const card = document.createElement('div');
+            card.className = 'stat-card';
+            let responsesHTML = `<div class="question-title">${q.text}</div>`;
+            
+            let hasAnswer = false;
+            allResults.forEach(res => {
+                if (res[q.id]) {
+                    hasAnswer = true;
+                    responsesHTML += `<div class="text-responses">- ${escapeHtml(res[q.id])}</div>`;
+                }
+            });
+
+            if (!hasAnswer) {
+                responsesHTML += `<div class="text-responses" style="color: #94a3b8;">작성된 의견이 없습니다.</div>`;
+            }
+
+            card.innerHTML = responsesHTML;
+            container.appendChild(card);
+        });
+    }
+
+    // XSS 방지용 헬퍼 함수
+    function escapeHtml(str) {
+        return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
+    }
+</script>
+
+</body>
+</html>
