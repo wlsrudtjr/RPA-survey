@@ -511,7 +511,8 @@
         { id: 't4', text: 'RPA 안정성 및 오류 대응을 위해 추가로 요청하거나 개선되었으면 하는 사항이 있습니까?' }
     ];
 
-    // 라디오 버튼 동적 생성
+    // 라디오 버튼 동적 생성 (DOM이 모두 로드된 후 실행)
+document.addEventListener('DOMContentLoaded', () => {
     document.querySelectorAll('.question-card[data-qtype="scale"]').forEach(card => {
         const qid = card.getAttribute('data-qid');
         const optionsDiv = card.querySelector('.options');
@@ -524,16 +525,20 @@
             "해당 없음"
         ];
         
+        let optionsHTML = '';
         scaleLabels.forEach((label, idx) => {
             const val = idx < 5 ? (idx + 1).toString() : 'none';
-            optionsDiv.innerHTML += `
+            optionsHTML += `
                 <label>
                     <input type="radio" name="${qid}" value="${val}" required>
                     ${label}
                 </label>
             `;
         });
+        optionsDiv.innerHTML = optionsHTML;
     });
+});
+
 
     // 폼 제출 처리 (Firebase Firestore 저장)
     document.getElementById('satisfaction-form').addEventListener('submit', async function(e) {
