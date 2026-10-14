@@ -31,7 +31,6 @@
             box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
             position: relative;
         }
-        /* 우측 상단 통계 버튼 */
         .top-right-btn {
             position: absolute;
             top: 20px;
@@ -45,9 +44,7 @@
             cursor: pointer;
             transition: background-color 0.2s;
         }
-        .top-right-btn:hover {
-            background-color: #475569;
-        }
+        .top-right-btn:hover { background-color: #475569; }
         h1 {
             color: var(--primary-color);
             text-align: center;
@@ -77,7 +74,6 @@
             color: #1e293b;
         }
         
-        /* 서비스 구분 선택 카드 */
         .category-card {
             background: #eef2ff;
             border: 2px solid #c7d2fe;
@@ -156,15 +152,12 @@
             margin-top: 30px;
             transition: background-color 0.2s;
         }
-        .btn-submit:hover {
-            background-color: #1d4ed8;
-        }
+        .btn-submit:hover { background-color: #1d4ed8; }
         .btn-submit:disabled {
             background-color: #94a3b8;
             cursor: not-allowed;
         }
 
-        /* 통계 필터 탭 스타일 */
         .filter-container {
             display: flex;
             gap: 10px;
@@ -191,7 +184,6 @@
             box-shadow: 0 1px 3px rgba(0,0,0,0.1);
         }
 
-        /* 결과 화면 컨트롤 버튼 그룹 */
         .result-actions {
             display: flex;
             gap: 10px;
@@ -236,10 +228,7 @@
         }
         .btn-close:hover { background-color: #334155; }
 
-        /* 결과 화면 스타일 */
-        #result-view {
-            display: none;
-        }
+        #result-view { display: none; }
         .stat-card {
             background: #f8fafc;
             border: 1px solid #e2e8f0;
@@ -261,7 +250,6 @@
             width: 100%;
             margin-top: 15px;
         }
-        /* 요약 테이블 스타일 */
         .summary-table {
             width: 100%;
             border-collapse: collapse;
@@ -278,9 +266,7 @@
             background-color: #f1f5f9;
             font-weight: 600;
         }
-        .summary-table td:nth-child(2) {
-            text-align: left;
-        }
+        .summary-table td:nth-child(2) { text-align: left; }
         .loading-text {
             text-align: center;
             padding: 30px;
@@ -310,82 +296,189 @@
             <div class="category-card">
                 <div class="category-title">서비스 구분 *</div>
                 <div class="category-options">
-                    <label>
-                        <input type="radio" name="serviceType" value="rental" checked required> 렌탈
-                    </label>
-                    <label>
-                        <input type="radio" name="serviceType" value="outright" required> 일시불
-                    </label>
+                    <label><input type="radio" name="serviceType" value="rental" checked required> 렌탈</label>
+                    <label><input type="radio" name="serviceType" value="outright" required> 일시불</label>
                 </div>
             </div>
 
             <!-- 섹션 1: 안정성 및 정상 동작 -->
             <div class="section-title">1. 안정성 및 정상 동작</div>
+            
+            <!-- 질문 카드를 템플릿 함수 대신 HTML 직접 생성으로 변경 -->
             <div class="question-card" data-qtype="scale" data-qid="q1">
                 <div class="question-title">1. RPA가 예정된 업무를 정상적으로 완료하는 편이다.</div>
-                <div class="options"></div>
+                <div class="options">
+                    <label><input type="radio" name="q1" value="1" required> 1점 (전혀 그렇지 않다)</label>
+                    <label><input type="radio" name="q1" value="2" required> 2점 (그렇지 않다)</label>
+                    <label><input type="radio" name="q1" value="3" required> 3점 (보통이다)</label>
+                    <label><input type="radio" name="q1" value="4" required> 4점 (그렇다)</label>
+                    <label><input type="radio" name="q1" value="5" required> 5점 (매우 그렇다)</label>
+                    <label><input type="radio" name="q1" value="none" required> 해당 없음</label>
+                </div>
             </div>
+
             <div class="question-card" data-qtype="scale" data-qid="q2">
                 <div class="question-title">2. 업무 처리 중 오류나 중단이 발생하는 빈도가 낮다.</div>
-                <div class="options"></div>
+                <div class="options">
+                    <label><input type="radio" name="q2" value="1" required> 1점 (전혀 그렇지 않다)</label>
+                    <label><input type="radio" name="q2" value="2" required> 2점 (그렇지 않다)</label>
+                    <label><input type="radio" name="q2" value="3" required> 3점 (보통이다)</label>
+                    <label><input type="radio" name="q2" value="4" required> 4점 (그렇다)</label>
+                    <label><input type="radio" name="q2" value="5" required> 5점 (매우 그렇다)</label>
+                    <label><input type="radio" name="q2" value="none" required> 해당 없음</label>
+                </div>
             </div>
+
             <div class="question-card" data-qtype="scale" data-qid="q3">
                 <div class="question-title">3. RPA가 처리한 결과는 정확하고, 별도의 재확인이 거의 필요하지 않다.</div>
-                <div class="options"></div>
+                <div class="options">
+                    <label><input type="radio" name="q3" value="1" required> 1점 (전혀 그렇지 않다)</label>
+                    <label><input type="radio" name="q3" value="2" required> 2점 (그렇지 않다)</label>
+                    <label><input type="radio" name="q3" value="3" required> 3점 (보통이다)</label>
+                    <label><input type="radio" name="q3" value="4" required> 4점 (그렇다)</label>
+                    <label><input type="radio" name="q3" value="5" required> 5점 (매우 그렇다)</label>
+                    <label><input type="radio" name="q3" value="none" required> 해당 없음</label>
+                </div>
             </div>
+
             <div class="question-card" data-qtype="scale" data-qid="q4">
                 <div class="question-title">4. 마감업무에서 정해진 시간 안에 처리가 완료된다.</div>
-                <div class="options"></div>
+                <div class="options">
+                    <label><input type="radio" name="q4" value="1" required> 1점 (전혀 그렇지 않다)</label>
+                    <label><input type="radio" name="q4" value="2" required> 2점 (그렇지 않다)</label>
+                    <label><input type="radio" name="q4" value="3" required> 3점 (보통이다)</label>
+                    <label><input type="radio" name="q4" value="4" required> 4점 (그렇다)</label>
+                    <label><input type="radio" name="q4" value="5" required> 5점 (매우 그렇다)</label>
+                    <label><input type="radio" name="q4" value="none" required> 해당 없음</label>
+                </div>
             </div>
+
             <div class="question-card" data-qtype="scale" data-qid="q5">
                 <div class="question-title">5. 입력값이나 업무 조건이 달라져도 기대한 방식으로 처리된다.</div>
-                <div class="options"></div>
+                <div class="options">
+                    <label><input type="radio" name="q5" value="1" required> 1점 (전혀 그렇지 않다)</label>
+                    <label><input type="radio" name="q5" value="2" required> 2점 (그렇지 않다)</label>
+                    <label><input type="radio" name="q5" value="3" required> 3점 (보통이다)</label>
+                    <label><input type="radio" name="q5" value="4" required> 4점 (그렇다)</label>
+                    <label><input type="radio" name="q5" value="5" required> 5점 (매우 그렇다)</label>
+                    <label><input type="radio" name="q5" value="none" required> 해당 없음</label>
+                </div>
             </div>
 
             <!-- 섹션 2: 오류 및 문제 대응 -->
             <div class="section-title">2. 오류 및 문제 대응</div>
             <div class="question-card" data-qtype="scale" data-qid="q6">
                 <div class="question-title">6. 오류가 발생했을 때 원인이나 처리 상태를 쉽게 확인할 수 있다.</div>
-                <div class="options"></div>
+                <div class="options">
+                    <label><input type="radio" name="q6" value="1" required> 1점 (전혀 그렇지 않다)</label>
+                    <label><input type="radio" name="q6" value="2" required> 2점 (그렇지 않다)</label>
+                    <label><input type="radio" name="q6" value="3" required> 3점 (보통이다)</label>
+                    <label><input type="radio" name="q6" value="4" required> 4점 (그렇다)</label>
+                    <label><input type="radio" name="q6" value="5" required> 5점 (매우 그렇다)</label>
+                    <label><input type="radio" name="q6" value="none" required> 해당 없음</label>
+                </div>
             </div>
             <div class="question-card" data-qtype="scale" data-qid="q7">
                 <div class="question-title">7. 오류 발생 시 담당자 또는 업체의 대응이 신속하다.</div>
-                <div class="options"></div>
+                <div class="options">
+                    <label><input type="radio" name="q7" value="1" required> 1점 (전혀 그렇지 않다)</label>
+                    <label><input type="radio" name="q7" value="2" required> 2점 (그렇지 않다)</label>
+                    <label><input type="radio" name="q7" value="3" required> 3점 (보통이다)</label>
+                    <label><input type="radio" name="q7" value="4" required> 4점 (그렇다)</label>
+                    <label><input type="radio" name="q7" value="5" required> 5점 (매우 그렇다)</label>
+                    <label><input type="radio" name="q7" value="none" required> 해당 없음</label>
+                </div>
             </div>
             <div class="question-card" data-qtype="scale" data-qid="q8">
                 <div class="question-title">8. 오류가 발생한 업무를 재처리하거나 수동으로 마무리하기 쉽다.</div>
-                <div class="options"></div>
+                <div class="options">
+                    <label><input type="radio" name="q8" value="1" required> 1점 (전혀 그렇지 않다)</label>
+                    <label><input type="radio" name="q8" value="2" required> 2점 (그렇지 않다)</label>
+                    <label><input type="radio" name="q8" value="3" required> 3점 (보통이다)</label>
+                    <label><input type="radio" name="q8" value="4" required> 4점 (그렇다)</label>
+                    <label><input type="radio" name="q8" value="5" required> 5점 (매우 그렇다)</label>
+                    <label><input type="radio" name="q8" value="none" required> 해당 없음</label>
+                </div>
             </div>
             <div class="question-card" data-qtype="scale" data-qid="q9">
                 <div class="question-title">9. 동일하거나 유사한 오류가 반복되지 않도록 개선되고 있다.</div>
-                <div class="options"></div>
+                <div class="options">
+                    <label><input type="radio" name="q9" value="1" required> 1점 (전혀 그렇지 않다)</label>
+                    <label><input type="radio" name="q9" value="2" required> 2점 (그렇지 않다)</label>
+                    <label><input type="radio" name="q9" value="3" required> 3점 (보통이다)</label>
+                    <label><input type="radio" name="q9" value="4" required> 4점 (그렇다)</label>
+                    <label><input type="radio" name="q9" value="5" required> 5점 (매우 그렇다)</label>
+                    <label><input type="radio" name="q9" value="none" required> 해당 없음</label>
+                </div>
             </div>
 
             <!-- 섹션 3: 업무 효과 및 사용 만족도 -->
             <div class="section-title">3. 업무 효과 및 사용 만족도</div>
             <div class="question-card" data-qtype="scale" data-qid="q10">
                 <div class="question-title">10. RPA 사용으로 반복적인 수작업 시간이 줄었다.</div>
-                <div class="options"></div>
+                <div class="options">
+                    <label><input type="radio" name="q10" value="1" required> 1점 (전혀 그렇지 않다)</label>
+                    <label><input type="radio" name="q10" value="2" required> 2점 (그렇지 않다)</label>
+                    <label><input type="radio" name="q10" value="3" required> 3점 (보통이다)</label>
+                    <label><input type="radio" name="q10" value="4" required> 4점 (그렇다)</label>
+                    <label><input type="radio" name="q10" value="5" required> 5점 (매우 그렇다)</label>
+                    <label><input type="radio" name="q10" value="none" required> 해당 없음</label>
+                </div>
             </div>
             <div class="question-card" data-qtype="scale" data-qid="q11">
                 <div class="question-title">11. RPA 사용으로 마감업무의 업무 부담이 줄었다.</div>
-                <div class="options"></div>
+                <div class="options">
+                    <label><input type="radio" name="q11" value="1" required> 1점 (전혀 그렇지 않다)</label>
+                    <label><input type="radio" name="q11" value="2" required> 2점 (그렇지 않다)</label>
+                    <label><input type="radio" name="q11" value="3" required> 3점 (보통이다)</label>
+                    <label><input type="radio" name="q11" value="4" required> 4점 (그렇다)</label>
+                    <label><input type="radio" name="q11" value="5" required> 5점 (매우 그렇다)</label>
+                    <label><input type="radio" name="q11" value="none" required> 해당 없음</label>
+                </div>
             </div>
             <div class="question-card" data-qtype="scale" data-qid="q12">
                 <div class="question-title">12. RPA 사용 후 전체 업무 처리 시간이 줄었다.</div>
-                <div class="options"></div>
+                <div class="options">
+                    <label><input type="radio" name="q12" value="1" required> 1점 (전혀 그렇지 않다)</label>
+                    <label><input type="radio" name="q12" value="2" required> 2점 (그렇지 않다)</label>
+                    <label><input type="radio" name="q12" value="3" required> 3점 (보통이다)</label>
+                    <label><input type="radio" name="q12" value="4" required> 4점 (그렇다)</label>
+                    <label><input type="radio" name="q12" value="5" required> 5점 (매우 그렇다)</label>
+                    <label><input type="radio" name="q12" value="none" required> 해당 없음</label>
+                </div>
             </div>
             <div class="question-card" data-qtype="scale" data-qid="q13">
                 <div class="question-title">13. RPA를 사용하면 업무 결과를 더 안정적으로 관리할 수 있다.</div>
-                <div class="options"></div>
+                <div class="options">
+                    <label><input type="radio" name="q13" value="1" required> 1점 (전혀 그렇지 않다)</label>
+                    <label><input type="radio" name="q13" value="2" required> 2점 (그렇지 않다)</label>
+                    <label><input type="radio" name="q13" value="3" required> 3점 (보통이다)</label>
+                    <label><input type="radio" name="q13" value="4" required> 4점 (그렇다)</label>
+                    <label><input type="radio" name="q13" value="5" required> 5점 (매우 그렇다)</label>
+                    <label><input type="radio" name="q13" value="none" required> 해당 없음</label>
+                </div>
             </div>
             <div class="question-card" data-qtype="scale" data-qid="q14">
                 <div class="question-title">14. 현재 RPA의 전반적인 사용 경험에 만족한다.</div>
-                <div class="options"></div>
+                <div class="options">
+                    <label><input type="radio" name="q14" value="1" required> 1점 (전혀 그렇지 않다)</label>
+                    <label><input type="radio" name="q14" value="2" required> 2점 (그렇지 않다)</label>
+                    <label><input type="radio" name="q14" value="3" required> 3점 (보통이다)</label>
+                    <label><input type="radio" name="q14" value="4" required> 4점 (그렇다)</label>
+                    <label><input type="radio" name="q14" value="5" required> 5점 (매우 그렇다)</label>
+                    <label><input type="radio" name="q14" value="none" required> 해당 없음</label>
+                </div>
             </div>
             <div class="question-card" data-qtype="scale" data-qid="q15">
                 <div class="question-title">15. 현재 상태가 개선된다면 앞으로도 해당 업무에 RPA를 계속 사용하고 싶다.</div>
-                <div class="options"></div>
+                <div class="options">
+                    <label><input type="radio" name="q15" value="1" required> 1점 (전혀 그렇지 않다)</label>
+                    <label><input type="radio" name="q15" value="2" required> 2점 (그렇지 않다)</label>
+                    <label><input type="radio" name="q15" value="3" required> 3점 (보통이다)</label>
+                    <label><input type="radio" name="q15" value="4" required> 4점 (그렇다)</label>
+                    <label><input type="radio" name="q15" value="5" required> 5점 (매우 그렇다)</label>
+                    <label><input type="radio" name="q15" value="none" required> 해당 없음</label>
+                </div>
             </div>
 
             <!-- 섹션 4: 개선 의견 -->
@@ -416,7 +509,6 @@
         <h1>설문조사 결과 통계</h1>
         <p class="desc">설문이 정상적으로 제출되었습니다. 누적 응답 데이터입니다.</p>
 
-        <!-- 통계 구분 필터 버튼 -->
         <div class="filter-container">
             <button class="filter-btn active" onclick="setFilter('all', this)">전체 보기</button>
             <button class="filter-btn" onclick="setFilter('rental', this)">렌탈</button>
@@ -428,7 +520,6 @@
             <button class="btn-reset" onclick="checkPasswordAndReset()">조사 결과 초기화</button>
         </div>
 
-        <!-- 질문별 점수 합계 요약 영역 -->
         <div class="stat-card">
             <div class="question-title">문항별 점수 합계 및 평균 요약표 (<span id="filter-label-text">전체</span>)</div>
             <div style="overflow-x: auto;">
@@ -442,9 +533,7 @@
                             <th>평균 점수</th>
                         </tr>
                     </thead>
-                    <tbody id="summary-tbody">
-                        <!-- 동적 생성 -->
-                    </tbody>
+                    <tbody id="summary-tbody"></tbody>
                 </table>
             </div>
         </div>
@@ -455,11 +544,10 @@
     </div>
 </div>
 
-<!-- Firebase SDK 13.x 모듈 버전 로드 -->
+<!-- Firebase SDK 로드 및 비동기 안전 처리 -->
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/13.0.0/firebase-app.js";
   import { getAnalytics } from "https://www.gstatic.com/firebasejs/13.0.0/firebase-analytics.js";
-  // Firestore 관련 기능 및 db 인스턴스 생성 함수 추가
   import { 
     getFirestore, 
     collection, 
@@ -470,7 +558,6 @@
     serverTimestamp 
   } from "https://www.gstatic.com/firebasejs/13.0.0/firebase-firestore.js";
 
-  // Firebase 설정 정보
   const firebaseConfig = {
     apiKey: "AIzaSyDhUiKlIqza1b5f2vZw5jt3cFkiJ952voQ",
     authDomain: "rpa-survey.firebaseapp.com",
@@ -481,16 +568,15 @@
     measurementId: "G-6NK36MZW13"
   };
 
-  // Firebase 및 Firestore 초기화
   const app = initializeApp(firebaseConfig);
   const analytics = getAnalytics(app);
-  const db = getFirestore(app); // db 객체 생성
+  const db = getFirestore(app);
   const surveyCollection = collection(db, "rpa_survey_results");
 
   const CORRECT_PASSWORD = "22025344";
-  let currentFilter = 'all'; // 'all', 'rental', 'outright'
-  let chartInstances = {};   // 차트 인스턴스 저장 객체
-  let fetchedResultsCache = []; // 서버에서 불러온 데이터 저장용 메모리 캐시
+  let currentFilter = 'all';
+  let chartInstances = {};
+  let fetchedResultsCache = [];
 
   const scaleQuestions = [
       { id: 'q1', text: '1. RPA가 예정된 업무를 정상적으로 완료하는 편이다.' },
@@ -517,42 +603,7 @@
       { id: 't4', text: 'RPA 안정성 및 오류 대응을 위해 추가로 요청하거나 개선되었으면 하는 사항이 있습니까?' }
   ];
 
-  // 라디오 버튼 동적 생성 함수
-  function initRadioButtons() {
-      document.querySelectorAll('.question-card[data-qtype="scale"]').forEach(card => {
-          const qid = card.getAttribute('data-qid');
-          const optionsDiv = card.querySelector('.options');
-          const scaleLabels = [
-              "1점 (전혀 그렇지 않다)",
-              "2점 (그렇지 않다)",
-              "3점 (보통이다)",
-              "4점 (그렇다)",
-              "5점 (매우 그렇다)",
-              "해당 없음"
-          ];
-          
-          let optionsHTML = '';
-          scaleLabels.forEach((label, idx) => {
-              const val = idx < 5 ? (idx + 1).toString() : 'none';
-              optionsHTML += `
-                  <label>
-                      <input type="radio" name="${qid}" value="${val}" required>
-                      ${label}
-                  </label>
-              `;
-          });
-          optionsDiv.innerHTML = optionsHTML;
-      });
-  }
-
-  // DOM 로드 완료 후 실행
-  if (document.readyState === 'loading') {
-      document.addEventListener('DOMContentLoaded', initRadioButtons);
-  } else {
-      initRadioButtons();
-  }
-
-  // 폼 제출 처리 (Firebase Firestore 저장)
+  // 폼 제출 처리
   document.getElementById('satisfaction-form').addEventListener('submit', async function(e) {
       e.preventDefault();
       
@@ -577,7 +628,6 @@
       });
 
       try {
-          // Firebase에 데이터 등록
           await addDoc(surveyCollection, formData);
 
           document.getElementById('survey-view').style.display = 'none';
@@ -591,7 +641,6 @@
       }
   });
 
-  // 통계 바로보기
   window.checkPasswordAndShowStats = async function() {
       const input = prompt("관리자 비밀번호를 입력하세요:");
       if (input === CORRECT_PASSWORD) {
@@ -603,7 +652,6 @@
       }
   };
 
-  // 통계 필터 변경 함수
   window.setFilter = function(filterType, btnElement) {
       currentFilter = filterType;
       document.querySelectorAll('.filter-btn').forEach(btn => btn.classList.remove('active'));
@@ -617,7 +665,6 @@
       renderStats();
   };
 
-  // 설문 종료
   window.closeSurveyPage = function() {
       alert("설문이 완료되었습니다. 창을 닫아주세요.");
       window.close();
@@ -629,7 +676,6 @@
       `;
   };
 
-  // 조사 결과 초기화 (Firebase 데이터 일괄 삭제)
   window.checkPasswordAndReset = async function() {
       const input = prompt("결과 초기화를 위한 관리자 비밀번호를 입력하세요:");
       if (input === CORRECT_PASSWORD) {
@@ -651,7 +697,6 @@
       }
   };
 
-  // Firebase 데이터 조회
   async function loadDataAndRender() {
       const container = document.getElementById('stats-container');
       container.innerHTML = `<div class="loading-text">서버에서 응답 데이터를 불러오는 중입니다...</div>`;
@@ -669,10 +714,8 @@
       }
   }
 
-  // 엑셀(CSV) 다운로드
   window.exportToCSV = function() {
       const allResults = fetchedResultsCache;
-      
       if (allResults.length === 0) {
           alert("다운로드할 응답 데이터가 없습니다.");
           return;
@@ -762,24 +805,19 @@
       document.body.removeChild(link);
   };
 
-  // 통계 결과 화면 그려주기
   function renderStats() {
       const rawResults = fetchedResultsCache;
-      
       const allResults = rawResults.filter(res => {
           if (currentFilter === 'all') return true;
           return res.serviceType === currentFilter;
       });
 
       Object.keys(chartInstances).forEach(key => {
-          if (chartInstances[key]) {
-              chartInstances[key].destroy();
-          }
+          if (chartInstances[key]) chartInstances[key].destroy();
       });
       chartInstances = {};
 
       const container = document.getElementById('stats-container');
-      
       let rentalCount = rawResults.filter(r => r.serviceType === 'rental').length;
       let outrightCount = rawResults.filter(r => r.serviceType === 'outright').length;
       
@@ -846,9 +884,7 @@
               options: {
                   responsive: true,
                   maintainAspectRatio: false,
-                  scales: {
-                      y: { beginAtZero: true, ticks: { stepSize: 1 } }
-                  },
+                  scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } },
                   plugins: { legend: { display: false } }
               }
           });
@@ -883,9 +919,6 @@
       return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
   }
 </script>
-
-
-
 
 </body>
 </html>
