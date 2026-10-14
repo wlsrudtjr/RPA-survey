@@ -457,15 +457,20 @@
 
 <!-- Firebase SDK 13.x 모듈 버전 로드 -->
 <script type="module">
-
-  // Import the functions you need from the SDKs you need
   import { initializeApp } from "https://www.gstatic.com/firebasejs/13.0.0/firebase-app.js";
   import { getAnalytics } from "https://www.gstatic.com/firebasejs/13.0.0/firebase-analytics.js";
-  // TODO: Add SDKs for Firebase products that you want to use
-  // https://firebase.google.com/docs/web/setup#available-libraries
+  // Firestore 관련 기능 및 db 인스턴스 생성 함수 추가
+  import { 
+    getFirestore, 
+    collection, 
+    addDoc, 
+    getDocs, 
+    deleteDoc, 
+    doc, 
+    serverTimestamp 
+  } from "https://www.gstatic.com/firebasejs/13.0.0/firebase-firestore.js";
 
-  // Your web app's Firebase configuration
-  // For Firebase JS SDK v7.20.0 and later, measurementId is optional
+  // Firebase 설정 정보
   const firebaseConfig = {
     apiKey: "AIzaSyDhUiKlIqza1b5f2vZw5jt3cFkiJ952voQ",
     authDomain: "rpa-survey.firebaseapp.com",
@@ -476,405 +481,411 @@
     measurementId: "G-6NK36MZW13"
   };
 
-  // Initialize Firebase
+  // Firebase 및 Firestore 초기화
   const app = initializeApp(firebaseConfig);
   const analytics = getAnalytics(app);
+  const db = getFirestore(app); // db 객체 생성
   const surveyCollection = collection(db, "rpa_survey_results");
 
-    const CORRECT_PASSWORD = "22025344";
-    let currentFilter = 'all'; // 'all', 'rental', 'outright'
-    let chartInstances = {};   // 차트 인스턴스 저장 객체
-    let fetchedResultsCache = []; // 서버에서 불러온 데이터 저장용 메모리 캐시
+  const CORRECT_PASSWORD = "22025344";
+  let currentFilter = 'all'; // 'all', 'rental', 'outright'
+  let chartInstances = {};   // 차트 인스턴스 저장 객체
+  let fetchedResultsCache = []; // 서버에서 불러온 데이터 저장용 메모리 캐시
 
-    const scaleQuestions = [
-        { id: 'q1', text: '1. RPA가 예정된 업무를 정상적으로 완료하는 편이다.' },
-        { id: 'q2', text: '2. 업무 처리 중 오류나 중단이 발생하는 빈도가 낮다.' },
-        { id: 'q3', text: '3. RPA가 처리한 결과는 정확하고, 별도의 재확인이 거의 필요하지 않다.' },
-        { id: 'q4', text: '4. 마감업무에서 정해진 시간 안에 처리가 완료된다.' },
-        { id: 'q5', text: '5. 입력값이나 업무 조건이 달라져도 기대한 방식으로 처리된다.' },
-        { id: 'q6', text: '6. 오류가 발생했을 때 원인이나 처리 상태를 쉽게 확인할 수 있다.' },
-        { id: 'q7', text: '7. 오류 발생 시 담당자 또는 업체의 대응이 신속하다.' },
-        { id: 'q8', text: '8. 오류가 발생한 업무를 재처리하거나 수동으로 마무리하기 쉽다.' },
-        { id: 'q9', text: '9. 동일하거나 유사한 오류가 반복되지 않도록 개선되고 있다.' },
-        { id: 'q10', text: '10. RPA 사용으로 반복적인 수작업 시간이 줄었다.' },
-        { id: 'q11', text: '11. RPA 사용으로 마감업무의 업무 부담이 줄었다.' },
-        { id: 'q12', text: '12. RPA 사용 후 전체 업무 처리 시간이 줄었다.' },
-        { id: 'q13', text: '13. RPA를 사용하면 업무 결과를 더 안정적으로 관리할 수 있다.' },
-        { id: 'q14', text: '14. 현재 RPA의 전반적인 사용 경험에 만족한다.' },
-        { id: 'q15', text: '15. 현재 상태가 개선된다면 앞으로도 해당 업무에 RPA를 계속 사용하고 싶다.' }
-    ];
+  const scaleQuestions = [
+      { id: 'q1', text: '1. RPA가 예정된 업무를 정상적으로 완료하는 편이다.' },
+      { id: 'q2', text: '2. 업무 처리 중 오류나 중단이 발생하는 빈도가 낮다.' },
+      { id: 'q3', text: '3. RPA가 처리한 결과는 정확하고, 별도의 재확인이 거의 필요하지 않다.' },
+      { id: 'q4', text: '4. 마감업무에서 정해진 시간 안에 처리가 완료된다.' },
+      { id: 'q5', text: '5. 입력값이나 업무 조건이 달라져도 기대한 방식으로 처리된다.' },
+      { id: 'q6', text: '6. 오류가 발생했을 때 원인이나 처리 상태를 쉽게 확인할 수 있다.' },
+      { id: 'q7', text: '7. 오류 발생 시 담당자 또는 업체의 대응이 신속하다.' },
+      { id: 'q8', text: '8. 오류가 발생한 업무를 재처리하거나 수동으로 마무리하기 쉽다.' },
+      { id: 'q9', text: '9. 동일하거나 유사한 오류가 반복되지 않도록 개선되고 있다.' },
+      { id: 'q10', text: '10. RPA 사용으로 반복적인 수작업 시간이 줄었다.' },
+      { id: 'q11', text: '11. RPA 사용으로 마감업무의 업무 부담이 줄었다.' },
+      { id: 'q12', text: '12. RPA 사용 후 전체 업무 처리 시간이 줄었다.' },
+      { id: 'q13', text: '13. RPA를 사용하면 업무 결과를 더 안정적으로 관리할 수 있다.' },
+      { id: 'q14', text: '14. 현재 RPA의 전반적인 사용 경험에 만족한다.' },
+      { id: 'q15', text: '15. 현재 상태가 개선된다면 앞으로도 해당 업무에 RPA를 계속 사용하고 싶다.' }
+  ];
 
-    const textQuestions = [
-        { id: 't1', text: '가장 자주 발생하는 오류 또는 불편 사항은 무엇인가요?' },
-        { id: 't2', text: '오류가 발생했을 때 업무에 어떤 영향이 있었나요? (예: 재작업, 마감 지연, 수작업 전환)' },
-        { id: 't3', text: '가장 먼저 개선되었으면 하는 사항은 무엇인가요?' },
-        { id: 't4', text: 'RPA 안정성 및 오류 대응을 위해 추가로 요청하거나 개선되었으면 하는 사항이 있습니까?' }
-    ];
+  const textQuestions = [
+      { id: 't1', text: '가장 자주 발생하는 오류 또는 불편 사항은 무엇인가요?' },
+      { id: 't2', text: '오류가 발생했을 때 업무에 어떤 영향이 있었나요? (예: 재작업, 마감 지연, 수작업 전환)' },
+      { id: 't3', text: '가장 먼저 개선되었으면 하는 사항은 무엇인가요?' },
+      { id: 't4', text: 'RPA 안정성 및 오류 대응을 위해 추가로 요청하거나 개선되었으면 하는 사항이 있습니까?' }
+  ];
 
-    // 라디오 버튼 동적 생성 (DOM이 모두 로드된 후 실행)
-document.addEventListener('DOMContentLoaded', () => {
-    document.querySelectorAll('.question-card[data-qtype="scale"]').forEach(card => {
-        const qid = card.getAttribute('data-qid');
-        const optionsDiv = card.querySelector('.options');
-        const scaleLabels = [
-            "1점 (전혀 그렇지 않다)",
-            "2점 (그렇지 않다)",
-            "3점 (보통이다)",
-            "4점 (그렇다)",
-            "5점 (매우 그렇다)",
-            "해당 없음"
-        ];
-        
-        let optionsHTML = '';
-        scaleLabels.forEach((label, idx) => {
-            const val = idx < 5 ? (idx + 1).toString() : 'none';
-            optionsHTML += `
-                <label>
-                    <input type="radio" name="${qid}" value="${val}" required>
-                    ${label}
-                </label>
-            `;
-        });
-        optionsDiv.innerHTML = optionsHTML;
-    });
-});
+  // 라디오 버튼 동적 생성 함수
+  function initRadioButtons() {
+      document.querySelectorAll('.question-card[data-qtype="scale"]').forEach(card => {
+          const qid = card.getAttribute('data-qid');
+          const optionsDiv = card.querySelector('.options');
+          const scaleLabels = [
+              "1점 (전혀 그렇지 않다)",
+              "2점 (그렇지 않다)",
+              "3점 (보통이다)",
+              "4점 (그렇다)",
+              "5점 (매우 그렇다)",
+              "해당 없음"
+          ];
+          
+          let optionsHTML = '';
+          scaleLabels.forEach((label, idx) => {
+              const val = idx < 5 ? (idx + 1).toString() : 'none';
+              optionsHTML += `
+                  <label>
+                      <input type="radio" name="${qid}" value="${val}" required>
+                      ${label}
+                  </label>
+              `;
+          });
+          optionsDiv.innerHTML = optionsHTML;
+      });
+  }
 
+  // DOM 로드 완료 후 실행
+  if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', initRadioButtons);
+  } else {
+      initRadioButtons();
+  }
 
-    // 폼 제출 처리 (Firebase Firestore 저장)
-    document.getElementById('satisfaction-form').addEventListener('submit', async function(e) {
-        e.preventDefault();
-        
-        const submitBtn = document.getElementById('submit-btn');
-        submitBtn.disabled = true;
-        submitBtn.innerText = "제출 중입니다...";
+  // 폼 제출 처리 (Firebase Firestore 저장)
+  document.getElementById('satisfaction-form').addEventListener('submit', async function(e) {
+      e.preventDefault();
+      
+      const submitBtn = document.getElementById('submit-btn');
+      submitBtn.disabled = true;
+      submitBtn.innerText = "제출 중입니다...";
 
-        const serviceType = document.querySelector('input[name="serviceType"]:checked').value;
-        
-        const formData = {
-            serviceType: serviceType,
-            createdAt: serverTimestamp()
-        };
+      const serviceType = document.querySelector('input[name="serviceType"]:checked').value;
+      
+      const formData = {
+          serviceType: serviceType,
+          createdAt: serverTimestamp()
+      };
 
-        scaleQuestions.forEach(q => {
-            const checked = document.querySelector(`input[name="${q.id}"]:checked`);
-            formData[q.id] = checked ? checked.value : 'none';
-        });
-        textQuestions.forEach(q => {
-            const val = document.querySelector(`textarea[name="${q.id}"]`).value.trim();
-            formData[q.id] = val;
-        });
+      scaleQuestions.forEach(q => {
+          const checked = document.querySelector(`input[name="${q.id}"]:checked`);
+          formData[q.id] = checked ? checked.value : 'none';
+      });
+      textQuestions.forEach(q => {
+          const val = document.querySelector(`textarea[name="${q.id}"]`).value.trim();
+          formData[q.id] = val;
+      });
 
-        try {
-            // Firebase에 데이터 등록
-            await addDoc(surveyCollection, formData);
+      try {
+          // Firebase에 데이터 등록
+          await addDoc(surveyCollection, formData);
 
-            document.getElementById('survey-view').style.display = 'none';
-            document.getElementById('result-view').style.display = 'block';
-            await loadDataAndRender();
-        } catch (error) {
-            console.error("Firebase 저장 오류:", error);
-            alert("설문 저장 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.");
-            submitBtn.disabled = false;
-            submitBtn.innerText = "설문 제출 및 결과 확인";
-        }
-    });
+          document.getElementById('survey-view').style.display = 'none';
+          document.getElementById('result-view').style.display = 'block';
+          await loadDataAndRender();
+      } catch (error) {
+          console.error("Firebase 저장 오류:", error);
+          alert("설문 저장 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.");
+          submitBtn.disabled = false;
+          submitBtn.innerText = "설문 제출 및 결과 확인";
+      }
+  });
 
-    // 통계 바로보기
-    window.checkPasswordAndShowStats = async function() {
-        const input = prompt("관리자 비밀번호를 입력하세요:");
-        if (input === CORRECT_PASSWORD) {
-            document.getElementById('survey-view').style.display = 'none';
-            document.getElementById('result-view').style.display = 'block';
-            await loadDataAndRender();
-        } else if (input !== null) {
-            alert("비밀번호가 일치하지 않습니다.");
-        }
-    };
+  // 통계 바로보기
+  window.checkPasswordAndShowStats = async function() {
+      const input = prompt("관리자 비밀번호를 입력하세요:");
+      if (input === CORRECT_PASSWORD) {
+          document.getElementById('survey-view').style.display = 'none';
+          document.getElementById('result-view').style.display = 'block';
+          await loadDataAndRender();
+      } else if (input !== null) {
+          alert("비밀번호가 일치하지 않습니다.");
+      }
+  };
 
-    // 통계 필터 변경 함수
-    window.setFilter = function(filterType, btnElement) {
-        currentFilter = filterType;
-        document.querySelectorAll('.filter-btn').forEach(btn => btn.classList.remove('active'));
-        if (btnElement) btnElement.classList.add('active');
-        
-        let labelText = "전체";
-        if (filterType === 'rental') labelText = "렌탈";
-        if (filterType === 'outright') labelText = "일시불";
-        document.getElementById('filter-label-text').innerText = labelText;
+  // 통계 필터 변경 함수
+  window.setFilter = function(filterType, btnElement) {
+      currentFilter = filterType;
+      document.querySelectorAll('.filter-btn').forEach(btn => btn.classList.remove('active'));
+      if (btnElement) btnElement.classList.add('active');
+      
+      let labelText = "전체";
+      if (filterType === 'rental') labelText = "렌탈";
+      if (filterType === 'outright') labelText = "일시불";
+      document.getElementById('filter-label-text').innerText = labelText;
 
-        renderStats();
-    };
+      renderStats();
+  };
 
-    // 설문 종료
-    window.closeSurveyPage = function() {
-        alert("설문이 완료되었습니다. 창을 닫아주세요.");
-        window.close();
-        document.body.innerHTML = `
-            <div style="max-width: 600px; margin: 100px auto; text-align: center; font-family: sans-serif;">
-                <h2>설문이 성공적으로 종료되었습니다.</h2>
-                <p>본 브라우저 탭을 안전하게 닫으셔도 됩니다.</p>
-            </div>
-        `;
-    };
+  // 설문 종료
+  window.closeSurveyPage = function() {
+      alert("설문이 완료되었습니다. 창을 닫아주세요.");
+      window.close();
+      document.body.innerHTML = `
+          <div style="max-width: 600px; margin: 100px auto; text-align: center; font-family: sans-serif;">
+              <h2>설문이 성공적으로 종료되었습니다.</h2>
+              <p>본 브라우저 탭을 안전하게 닫으셔도 됩니다.</p>
+          </div>
+      `;
+  };
 
-    // 조사 결과 초기화 (Firebase 데이터 일괄 삭제)
-    window.checkPasswordAndReset = async function() {
-        const input = prompt("결과 초기화를 위한 관리자 비밀번호를 입력하세요:");
-        if (input === CORRECT_PASSWORD) {
-            if (confirm("정말로 데이터베이스의 모든 조사 결과를 초기화하시겠습니까? 이 작업은 되돌릴 수 없습니다.")) {
-                try {
-                    const snapshot = await getDocs(surveyCollection);
-                    const deletePromises = snapshot.docs.map(d => deleteDoc(doc(db, "rpa_survey_results", d.id)));
-                    await Promise.all(deletePromises);
+  // 조사 결과 초기화 (Firebase 데이터 일괄 삭제)
+  window.checkPasswordAndReset = async function() {
+      const input = prompt("결과 초기화를 위한 관리자 비밀번호를 입력하세요:");
+      if (input === CORRECT_PASSWORD) {
+          if (confirm("정말로 데이터베이스의 모든 조사 결과를 초기화하시겠습니까? 이 작업은 되돌릴 수 없습니다.")) {
+              try {
+                  const snapshot = await getDocs(surveyCollection);
+                  const deletePromises = snapshot.docs.map(d => deleteDoc(doc(db, "rpa_survey_results", d.id)));
+                  await Promise.all(deletePromises);
 
-                    alert("초기화되었습니다.");
-                    await loadDataAndRender();
-                } catch (err) {
-                    console.error("초기화 실패:", err);
-                    alert("초기화 처리 중 오류가 발생했습니다.");
-                }
-            }
-        } else if (input !== null) {
-            alert("비밀번호가 일치하지 않습니다.");
-        }
-    };
+                  alert("초기화되었습니다.");
+                  await loadDataAndRender();
+              } catch (err) {
+                  console.error("초기화 실패:", err);
+                  alert("초기화 처리 중 오류가 발생했습니다.");
+              }
+          }
+      } else if (input !== null) {
+          alert("비밀번호가 일치하지 않습니다.");
+      }
+  };
 
-    // Firebase 데이터 조회
-    async function loadDataAndRender() {
-        const container = document.getElementById('stats-container');
-        container.innerHTML = `<div class="loading-text">서버에서 응답 데이터를 불러오는 중입니다...</div>`;
-        
-        try {
-            const querySnapshot = await getDocs(surveyCollection);
-            fetchedResultsCache = [];
-            querySnapshot.forEach((doc) => {
-                fetchedResultsCache.push({ id: doc.id, ...doc.data() });
-            });
-            renderStats();
-        } catch (error) {
-            console.error("데이터 로딩 실패:", error);
-            container.innerHTML = `<div class="loading-text" style="color:#dc2626;">데이터를 불러오지 못했습니다. Firebase 설정 및 네트워크 상태를 확인하세요.</div>`;
-        }
-    }
+  // Firebase 데이터 조회
+  async function loadDataAndRender() {
+      const container = document.getElementById('stats-container');
+      container.innerHTML = `<div class="loading-text">서버에서 응답 데이터를 불러오는 중입니다...</div>`;
+      
+      try {
+          const querySnapshot = await getDocs(surveyCollection);
+          fetchedResultsCache = [];
+          querySnapshot.forEach((doc) => {
+              fetchedResultsCache.push({ id: doc.id, ...doc.data() });
+          });
+          renderStats();
+      } catch (error) {
+          console.error("데이터 로딩 실패:", error);
+          container.innerHTML = `<div class="loading-text" style="color:#dc2626;">데이터를 불러오지 못했습니다. Firebase 설정 및 네트워크 상태를 확인하세요.</div>`;
+      }
+  }
 
-    // 엑셀(CSV) 다운로드
-    window.exportToCSV = function() {
-        const allResults = fetchedResultsCache;
-        
-        if (allResults.length === 0) {
-            alert("다운로드할 응답 데이터가 없습니다.");
-            return;
-        }
+  // 엑셀(CSV) 다운로드
+  window.exportToCSV = function() {
+      const allResults = fetchedResultsCache;
+      
+      if (allResults.length === 0) {
+          alert("다운로드할 응답 데이터가 없습니다.");
+          return;
+      }
 
-        const rentalResults = allResults.filter(r => r.serviceType === 'rental');
-        const outrightResults = allResults.filter(r => r.serviceType === 'outright');
+      const rentalResults = allResults.filter(r => r.serviceType === 'rental');
+      const outrightResults = allResults.filter(r => r.serviceType === 'outright');
 
-        let csvLines = [];
+      let csvLines = [];
 
-        function generateSummaryRows(dataList, title) {
-            csvLines.push(`"${title}"`);
-            csvLines.push('"문항 번호","질문 내용","유효 응답자 수","점수 합계","평균 점수"');
-            
-            scaleQuestions.forEach(q => {
-                let totalScoreSum = 0;
-                let scoreCount = 0;
-                dataList.forEach(res => {
-                    const val = res[q.id];
-                    if (val && val !== 'none') {
-                        totalScoreSum += parseInt(val);
-                        scoreCount++;
-                    }
-                });
-                const avgScore = scoreCount > 0 ? (totalScoreSum / scoreCount).toFixed(2) : '0.00';
-                csvLines.push(`"${q.id.toUpperCase()}","${q.text.replace(/"/g, '""')}","${scoreCount}명","${totalScoreSum}점","${avgScore}점"`);
-            });
-            csvLines.push("");
-        }
+      function generateSummaryRows(dataList, title) {
+          csvLines.push(`"${title}"`);
+          csvLines.push('"문항 번호","질문 내용","유효 응답자 수","점수 합계","평균 점수"');
+          
+          scaleQuestions.forEach(q => {
+              let totalScoreSum = 0;
+              let scoreCount = 0;
+              dataList.forEach(res => {
+                  const val = res[q.id];
+                  if (val && val !== 'none') {
+                      totalScoreSum += parseInt(val);
+                      scoreCount++;
+                  }
+              });
+              const avgScore = scoreCount > 0 ? (totalScoreSum / scoreCount).toFixed(2) : '0.00';
+              csvLines.push(`"${q.id.toUpperCase()}","${q.text.replace(/"/g, '""')}","${scoreCount}명","${totalScoreSum}점","${avgScore}점"`);
+          });
+          csvLines.push("");
+      }
 
-        // [파트 1] 요약표 출력
-        generateSummaryRows(allResults, "=== [1-1] 전체 통합 문항별 점수 요약표 ===");
-        generateSummaryRows(rentalResults, "=== [1-2] [렌탈] 문항별 점수 요약표 ===");
-        generateSummaryRows(outrightResults, "=== [1-3] [일시불] 문항별 점수 요약표 ===");
+      generateSummaryRows(allResults, "=== [1-1] 전체 통합 문항별 점수 요약표 ===");
+      generateSummaryRows(rentalResults, "=== [1-2] [렌탈] 문항별 점수 요약표 ===");
+      generateSummaryRows(outrightResults, "=== [1-3] [일시불] 문항별 점수 요약표 ===");
 
-        // [파트 2] 주관식 답변 출력
-        csvLines.push('"=== [2] 주관식 질문 및 구분별 답변 목록 ==="');
-        textQuestions.forEach(q => {
-            csvLines.push(`"[질문] ${q.text.replace(/"/g, '""')}"`);
-            
-            csvLines.push('"-- [렌탈 응답자 의견] --"');
-            let hasRentalAns = false;
-            rentalResults.forEach((res, idx) => {
-                if (res[q.id]) {
-                    hasRentalAns = true;
-                    csvLines.push(`"렌탈 응답 ${idx + 1}","${res[q.id].replace(/"/g, '""')}"`);
-                }
-            });
-            if (!hasRentalAns) csvLines.push('"작성된 의견이 없습니다."');
+      csvLines.push('"=== [2] 주관식 질문 및 구분별 답변 목록 ==="');
+      textQuestions.forEach(q => {
+          csvLines.push(`"[질문] ${q.text.replace(/"/g, '""')}"`);
+          
+          csvLines.push('"-- [렌탈 응답자 의견] --"');
+          let hasRentalAns = false;
+          rentalResults.forEach((res, idx) => {
+              if (res[q.id]) {
+                  hasRentalAns = true;
+                  csvLines.push(`"렌탈 응답 ${idx + 1}","${res[q.id].replace(/"/g, '""')}"`);
+              }
+          });
+          if (!hasRentalAns) csvLines.push('"작성된 의견이 없습니다."');
 
-            csvLines.push('"-- [일시불 응답자 의견] --"');
-            let hasOutrightAns = false;
-            outrightResults.forEach((res, idx) => {
-                if (res[q.id]) {
-                    hasOutrightAns = true;
-                    csvLines.push(`"일시불 응답 ${idx + 1}","${res[q.id].replace(/"/g, '""')}"`);
-                }
-            });
-            if (!hasOutrightAns) csvLines.push('"작성된 의견이 없습니다."');
+          csvLines.push('"-- [일시불 응답자 의견] --"');
+          let hasOutrightAns = false;
+          outrightResults.forEach((res, idx) => {
+              if (res[q.id]) {
+                  hasOutrightAns = true;
+                  csvLines.push(`"일시불 응답 ${idx + 1}","${res[q.id].replace(/"/g, '""')}"`);
+              }
+          });
+          if (!hasOutrightAns) csvLines.push('"작성된 의견이 없습니다."');
 
-            csvLines.push("");
-        });
+          csvLines.push("");
+      });
 
-        csvLines.push("");
+      csvLines.push("");
 
-        // [파트 3] 전체 상세 데이터
-        csvLines.push('"=== [3] 전체 상세 응답 결과 데이터 ==="');
-        let detailHeaders = ['번호', '서비스 구분'];
-        scaleQuestions.forEach(q => detailHeaders.push(`"[${q.id}] ${q.text.replace(/"/g, '""')}"`));
-        textQuestions.forEach(q => detailHeaders.push(`"[${q.id}] ${q.text.replace(/"/g, '""')}"`));
-        csvLines.push(detailHeaders.join(","));
+      csvLines.push('"=== [3] 전체 상세 응답 결과 데이터 ==="');
+      let detailHeaders = ['번호', '서비스 구분'];
+      scaleQuestions.forEach(q => detailHeaders.push(`"[${q.id}] ${q.text.replace(/"/g, '""')}"`));
+      textQuestions.forEach(q => detailHeaders.push(`"[${q.id}] ${q.text.replace(/"/g, '""')}"`));
+      csvLines.push(detailHeaders.join(","));
 
-        allResults.forEach((res, index) => {
-            const serviceLabel = res.serviceType === 'rental' ? '렌탈' : '일시불';
-            let row = [index + 1, `"${serviceLabel}"`];
-            scaleQuestions.forEach(q => row.push(`"${(res[q.id] || '').replace(/"/g, '""')}"`));
-            textQuestions.forEach(q => row.push(`"${(res[q.id] || '').replace(/"/g, '""')}"`));
-            csvLines.push(row.join(","));
-        });
+      allResults.forEach((res, index) => {
+          const serviceLabel = res.serviceType === 'rental' ? '렌탈' : '일시불';
+          let row = [index + 1, `"${serviceLabel}"`];
+          scaleQuestions.forEach(q => row.push(`"${(res[q.id] || '').replace(/"/g, '""')}"`));
+          textQuestions.forEach(q => row.push(`"${(res[q.id] || '').replace(/"/g, '""')}"`));
+          csvLines.push(row.join(","));
+      });
 
-        let csvContent = "\uFEFF" + csvLines.join("\n");
+      let csvContent = "\uFEFF" + csvLines.join("\n");
 
-        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-        const url = URL.createObjectURL(blob);
-        const link = document.createElement("a");
-        link.setAttribute("href", url);
-        link.setAttribute("download", `RPA_만족도조사_통계결과(Firebase)_${new Date().toISOString().slice(0,10)}.csv`);
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-    };
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.setAttribute("href", url);
+      link.setAttribute("download", `RPA_만족도조사_통계결과(Firebase)_${new Date().toISOString().slice(0,10)}.csv`);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+  };
 
-    // 통계 결과 화면 그려주기
-    function renderStats() {
-        const rawResults = fetchedResultsCache;
-        
-        const allResults = rawResults.filter(res => {
-            if (currentFilter === 'all') return true;
-            return res.serviceType === currentFilter;
-        });
+  // 통계 결과 화면 그려주기
+  function renderStats() {
+      const rawResults = fetchedResultsCache;
+      
+      const allResults = rawResults.filter(res => {
+          if (currentFilter === 'all') return true;
+          return res.serviceType === currentFilter;
+      });
 
-        Object.keys(chartInstances).forEach(key => {
-            if (chartInstances[key]) {
-                chartInstances[key].destroy();
-            }
-        });
-        chartInstances = {};
+      Object.keys(chartInstances).forEach(key => {
+          if (chartInstances[key]) {
+              chartInstances[key].destroy();
+          }
+      });
+      chartInstances = {};
 
-        const container = document.getElementById('stats-container');
-        
-        let rentalCount = rawResults.filter(r => r.serviceType === 'rental').length;
-        let outrightCount = rawResults.filter(r => r.serviceType === 'outright').length;
-        
-        container.innerHTML = `
-            <div style="background:#fff; border:1px solid #e2e8f0; padding:12px 16px; border-radius:6px; margin-bottom:20px; font-size:14px;">
-                <strong>[응답 현황]</strong> 조회 응답자: <strong>${allResults.length}명</strong> 
-                <span style="color:#64748b; margin-left:10px;">(전체 ${rawResults.length}명 / 렌탈 ${rentalCount}명 / 일시불 ${outrightCount}명)</span>
-            </div>
-        `;
+      const container = document.getElementById('stats-container');
+      
+      let rentalCount = rawResults.filter(r => r.serviceType === 'rental').length;
+      let outrightCount = rawResults.filter(r => r.serviceType === 'outright').length;
+      
+      container.innerHTML = `
+          <div style="background:#fff; border:1px solid #e2e8f0; padding:12px 16px; border-radius:6px; margin-bottom:20px; font-size:14px;">
+              <strong>[응답 현황]</strong> 조회 응답자: <strong>${allResults.length}명</strong> 
+              <span style="color:#64748b; margin-left:10px;">(전체 ${rawResults.length}명 / 렌탈 ${rentalCount}명 / 일시불 ${outrightCount}명)</span>
+          </div>
+      `;
 
-        let summaryTbodyHTML = '';
+      let summaryTbodyHTML = '';
 
-        scaleQuestions.forEach((q) => {
-            const counts = { '1': 0, '2': 0, '3': 0, '4': 0, '5': 0, 'none': 0 };
-            let totalScoreSum = 0;
-            let scoreCount = 0;
+      scaleQuestions.forEach((q) => {
+          const counts = { '1': 0, '2': 0, '3': 0, '4': 0, '5': 0, 'none': 0 };
+          let totalScoreSum = 0;
+          let scoreCount = 0;
 
-            allResults.forEach(res => {
-                const val = res[q.id];
-                if (counts[val] !== undefined) {
-                    counts[val]++;
-                    if (val !== 'none') {
-                        totalScoreSum += parseInt(val);
-                        scoreCount++;
-                    }
-                }
-            });
+          allResults.forEach(res => {
+              const val = res[q.id];
+              if (counts[val] !== undefined) {
+                  counts[val]++;
+                  if (val !== 'none') {
+                      totalScoreSum += parseInt(val);
+                      scoreCount++;
+                  }
+              }
+          });
 
-            const avgScore = scoreCount > 0 ? (totalScoreSum / scoreCount).toFixed(2) : '0.00';
+          const avgScore = scoreCount > 0 ? (totalScoreSum / scoreCount).toFixed(2) : '0.00';
 
-            summaryTbodyHTML += `
-                <tr>
-                    <td>${q.id.toUpperCase()}</td>
-                    <td>${q.text}</td>
-                    <td>${scoreCount}명</td>
-                    <td><strong>${totalScoreSum}점</strong></td>
-                    <td><strong>${avgScore}점</strong></td>
-                </tr>
-            `;
+          summaryTbodyHTML += `
+              <tr>
+                  <td>${q.id.toUpperCase()}</td>
+                  <td>${q.text}</td>
+                  <td>${scoreCount}명</td>
+                  <td><strong>${totalScoreSum}점</strong></td>
+                  <td><strong>${avgScore}점</strong></td>
+              </tr>
+          `;
 
-            const card = document.createElement('div');
-            card.className = 'stat-card';
-            card.innerHTML = `
-                <div class="question-title">${q.text}</div>
-                <p>점수 합계: <strong>${totalScoreSum}점</strong> | 평균 점수: <strong>${avgScore}점</strong> (유효 응답 ${scoreCount}명, 해당 없음 ${counts['none']}명)</p>
-                <div class="chart-container">
-                    <canvas id="chart-${q.id}"></canvas>
-                </div>
-            `;
-            container.appendChild(card);
+          const card = document.createElement('div');
+          card.className = 'stat-card';
+          card.innerHTML = `
+              <div class="question-title">${q.text}</div>
+              <p>점수 합계: <strong>${totalScoreSum}점</strong> | 평균 점수: <strong>${avgScore}점</strong> (유효 응답 ${scoreCount}명, 해당 없음 ${counts['none']}명)</p>
+              <div class="chart-container">
+                  <canvas id="chart-${q.id}"></canvas>
+              </div>
+          `;
+          container.appendChild(card);
 
-            const ctx = document.getElementById(`chart-${q.id}`).getContext('2d');
-            chartInstances[q.id] = new Chart(ctx, {
-                type: 'bar',
-                data: {
-                    labels: ['1점', '2점', '3점', '4점', '5점', '해당 없음'],
-                    datasets: [{
-                        label: '응답 수',
-                        data: [counts['1'], counts['2'], counts['3'], counts['4'], counts['5'], counts['none']],
-                        backgroundColor: '#3b82f6',
-                        borderRadius: 4
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    scales: {
-                        y: { beginAtZero: true, ticks: { stepSize: 1 } }
-                    },
-                    plugins: { legend: { display: false } }
-                }
-            });
-        });
+          const ctx = document.getElementById(`chart-${q.id}`).getContext('2d');
+          chartInstances[q.id] = new Chart(ctx, {
+              type: 'bar',
+              data: {
+                  labels: ['1점', '2점', '3점', '4점', '5점', '해당 없음'],
+                  datasets: [{
+                      label: '응답 수',
+                      data: [counts['1'], counts['2'], counts['3'], counts['4'], counts['5'], counts['none']],
+                      backgroundColor: '#3b82f6',
+                      borderRadius: 4
+                  }]
+              },
+              options: {
+                  responsive: true,
+                  maintainAspectRatio: false,
+                  scales: {
+                      y: { beginAtZero: true, ticks: { stepSize: 1 } }
+                  },
+                  plugins: { legend: { display: false } }
+              }
+          });
+      });
 
-        document.getElementById('summary-tbody').innerHTML = summaryTbodyHTML;
+      document.getElementById('summary-tbody').innerHTML = summaryTbodyHTML;
 
-        // 주관식 의견 출력
-        textQuestions.forEach(q => {
-            const card = document.createElement('div');
-            card.className = 'stat-card';
-            let responsesHTML = `<div class="question-title">${q.text}</div>`;
-            
-            let hasAnswer = false;
-            allResults.forEach(res => {
-                if (res[q.id]) {
-                    hasAnswer = true;
-                    const typeBadge = res.serviceType === 'rental' ? '<span style="color:#2563eb; font-weight:bold;">[렌탈]</span>' : '<span style="color:#059669; font-weight:bold;">[일시불]</span>';
-                    responsesHTML += `<div class="text-responses">${typeBadge} ${escapeHtml(res[q.id])}</div>`;
-                }
-            });
+      textQuestions.forEach(q => {
+          const card = document.createElement('div');
+          card.className = 'stat-card';
+          let responsesHTML = `<div class="question-title">${q.text}</div>`;
+          
+          let hasAnswer = false;
+          allResults.forEach(res => {
+              if (res[q.id]) {
+                  hasAnswer = true;
+                  const typeBadge = res.serviceType === 'rental' ? '<span style="color:#2563eb; font-weight:bold;">[렌탈]</span>' : '<span style="color:#059669; font-weight:bold;">[일시불]</span>';
+                  responsesHTML += `<div class="text-responses">${typeBadge} ${escapeHtml(res[q.id])}</div>`;
+              }
+          });
 
-            if (!hasAnswer) {
-                responsesHTML += `<div class="text-responses" style="color: #94a3b8;">작성된 의견이 없습니다.</div>`;
-            }
+          if (!hasAnswer) {
+              responsesHTML += `<div class="text-responses" style="color: #94a3b8;">작성된 의견이 없습니다.</div>`;
+          }
 
-            card.innerHTML = responsesHTML;
-            container.appendChild(card);
-        });
-    }
+          card.innerHTML = responsesHTML;
+          container.appendChild(card);
+      });
+  }
 
-    function escapeHtml(str) {
-        return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
-    }
+  function escapeHtml(str) {
+      return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
+  }
 </script>
+
+
+
 
 </body>
 </html>
